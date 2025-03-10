@@ -5,3 +5,5 @@ venv/
 .env
 user.json
 *.pdf
+*.db
+*.txt

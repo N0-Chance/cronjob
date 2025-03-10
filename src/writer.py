@@ -3,7 +3,9 @@ import re
 import sqlite3
 import openai
 import json
-import datetime
+import random
+import PyPDF2
+from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
 from reportlab.platypus import (
@@ -103,8 +105,8 @@ def process_next_writing_job():
     plain_cover = strip_reportlab_tags(cover_letter_text)
 
     # Build PDFs
-    create_pdf_reportlab(resume_text, resume_pdf_path, doc_title=f"{FULL_NAME}", leftMargin=0.5*inch, rightMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch)
-    create_pdf_reportlab(cover_letter_text, cover_letter_pdf_path, doc_title=f"{FULL_NAME} - Cover Letter for {job_title}")
+    create_pdf_reportlab(resume_text, resume_pdf_path, doc_title=f"{FULL_NAME}", leftMargin=0.5*inch, rightMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch, job_title=job_title)
+    create_pdf_reportlab(cover_letter_text, cover_letter_pdf_path, doc_title=f"{FULL_NAME} - Cover Letter for {job_title}", job_title=job_title)
 
     # 4) Update DB
     conn = sqlite3.connect(DB_PATH)
@@ -230,7 +232,7 @@ At the end return honest and objective feedback about the resume and user data. 
 
 def generate_cover_letter_text(user_data, job_data, approach, jd_reason):
     # (unchanged)
-    today_str = datetime.date.today().strftime("%B %d, %Y")
+    today_str = datetime.today().strftime("%B %d, %Y")
     si = user_data.get("special_instructions", [])
     instructions_str = "\n".join(f"- {ins}" for ins in si)
     job_json = json.dumps(job_data, indent=2)
@@ -310,7 +312,7 @@ def strip_reportlab_tags(markup_text):
 
 def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
                          leftMargin=inch, rightMargin=inch,
-                         topMargin=inch, bottomMargin=inch):
+                         topMargin=inch, bottomMargin=inch, job_title=""):
     """
     - We have two doc types: resume vs cover letter. 
     - If doc_title has "Cover Letter", we do 10pt. Else 9pt for resume.
@@ -338,7 +340,7 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
         'HeadingStyle',
         parent=styles['Normal'],
         fontName='Helvetica-Bold',
-        fontSize=10, 
+        fontSize=10,
         leading=20,
         alignment=TA_LEFT
     )
@@ -374,7 +376,6 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
         if "<h>" in line:
             # parse out heading
             # e.g. <h>Some heading</h>
-            # we'll do it the simpler route:
             heading_content = re.sub(r"<h>(.*?)</h>", r"\1", line)
             p = Paragraph(heading_content.upper(), heading_style)
             story.append(p)
@@ -389,7 +390,6 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
 
         # center the first non-empty line after doc title => contact info
         if not first_line_found:
-            # center this line
             pstyle = ParagraphStyle(
                 'CenterFirstLine',
                 parent=body_style,
@@ -410,10 +410,42 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
             if not c:
                 story.append(Spacer(1, 0.1*inch))
                 continue
-            # interpret <b>stuff</b>
             final_text = c
             p2 = Paragraph(final_text, body_style)
             story.append(p2)
 
+    # Build the PDF normally
     doc.build(story)
     print(f"{doc_title} PDF created: {pdf_path}")
+
+    # ----- POST-PROCESS METADATA WITH PyPDF2 -----
+    # Generate a random past date within 1-14 days
+    random_days_ago = random.randint(1, 14)
+    random_creation_date = datetime.now() - timedelta(days=random_days_ago)
+    # Format creation date in (D:YYYYMMDDHHMMSS)
+    formatted_creation_date = f"(D:{random_creation_date.strftime('%Y%m%d%H%M%S')})"
+
+    # Read the just-built PDF
+    with open(pdf_path, "rb") as original_pdf:
+        reader = PyPDF2.PdfReader(original_pdf)
+        writer = PyPDF2.PdfWriter()
+        writer.append_pages_from_reader(reader)
+
+        # Set or override metadata
+        metadata = {
+            "/Title": doc_title,
+            "/Author": FULL_NAME,
+            "/Subject": f"{FULL_NAME} Resume",
+            "/Keywords": f"Resume, Cover Letter, {job_title}, {FULL_NAME}",
+            "/Creator": "Microsoft Word",
+            "/Producer": "Acrobat PDFMaker 21.0 for Word",
+            "/CreationDate": formatted_creation_date,
+            "/ModDate": formatted_creation_date
+        }
+        writer.add_metadata(metadata)
+
+        # Write out the updated PDF (overwrite the original)
+        with open(pdf_path, "wb") as updated_pdf:
+            writer.write(updated_pdf)
+    # ----- END POST-PROCESS -----
+    print(f"Metadata updated for {doc_title} PDF: {pdf_path}")
