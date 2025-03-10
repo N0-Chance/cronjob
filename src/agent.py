@@ -1,13 +1,15 @@
 from langchain_openai import ChatOpenAI
 from browser_use import Agent
 from dotenv import load_dotenv
+import os
 import asyncio
 
 # Load environment variables
 load_dotenv()
 
 # Initialize OpenAI model
-llm = ChatOpenAI(model="gpt-4o")
+AGENT_MODEL = os.getenv("AGENT_MODEL", "gpt-4o")
+llm = ChatOpenAI(model=AGENT_MODEL)
 
 async def main():
     agent = Agent(

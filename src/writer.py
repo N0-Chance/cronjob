@@ -202,7 +202,7 @@ Do not include demographic information.
 Do not include eligibility status other than willingness to relocate or travel.
 Include phone number, email, website, and LinkedIn profile as a single line separated by | as the first line. Do not include a name.
 Do not inclue any N/A, placeholders, hyperlinks, or brackets.
-Write a paragraph for the summary section.
+Write a paragraph for the summary section in an objective third person voice without using any first person pronouns or the user's name.
 Explain how the user's experience and skills align with the job requirements and could benefit the company.
 Include a skills section with a list of skills that are relevant to the job.
 Inclue the dates next to the relevant experience.
