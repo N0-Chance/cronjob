@@ -11,7 +11,7 @@ llm = ChatOpenAI(model="gpt-4o")
 
 async def main():
     agent = Agent(
-        task="Go to Hiring Cafe (https://hiring.cafe) and extract job listings, including job titles, companies, and application links.",
+        task="Go this specific jon application page and scrape all data, including all text and form fields: https://job-boards.greenhouse.io/chime/jobs/7860805002?gh_jid=7860805002",
         llm=llm,
     )
     result = await agent.run()

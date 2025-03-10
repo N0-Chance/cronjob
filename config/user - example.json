@@ -1,0 +1,126 @@
+{
+    "personal_info": {
+      "name": "Your Name",
+      "address": "1234 Some Street, Some City, ST 12345",
+      "phone": "555-123-4567",
+      "email": "your.email@example.com",
+      "linkedin": "linkedin.com/in/yourprofile",
+      "website": "yourwebsite.com",
+      "github": "github.com/yourprofile"
+    },
+  
+    "eligibility": {
+      "work_eligibility": "Yes",
+      "visa_sponsorship_needed": "No",
+      "security_clearance": "None",
+      "willing_to_relocate": "Yes",
+      "willing_to_travel": "Yes"
+    },
+  
+    "demographics": {
+      "gender": "Prefer not to say",
+      "race_ethnicity": "Prefer not to say",
+      "veteran_status": "No",
+      "disability_status": "No",
+      "preferred_pronouns": "They/Them"
+    },
+  
+    "skills": [
+      "Contract Negotiation",
+      "Legal Research",
+      "Risk Mitigation",
+      "Regulatory Compliance",
+      "Drafting Agreements"
+    ],
+  
+    "experiences": [
+      {
+        "company": "Acme Inc",
+        "role": "Contract Specialist",
+        "dates": "2020 - Present",
+        "location": "Remote",
+        "bullets": [
+          "Managed contract lifecycle for major clients",
+          "Collaborated with legal teams to ensure compliance",
+          "Led contract risk assessments for procurement processes"
+        ]
+      },
+      {
+        "company": "Other Co",
+        "role": "Legal Intern",
+        "dates": "2018 - 2020",
+        "location": "New York, NY",
+        "bullets": [
+          "Assisted with research on regulatory matters",
+          "Drafted legal documents under supervision",
+          "Reviewed contracts for key compliance concerns"
+        ]
+      }
+    ],
+  
+    "education": [
+      {
+        "degree": "Juris Doctor (JD)",
+        "school": "Example University School of Law",
+        "dates": "2015 - 2018",
+        "gpa": "3.5",
+        "honors": ["Cum Laude", "Moot Court Participant"]
+      },
+      {
+        "degree": "Bachelor of Arts in Political Science",
+        "school": "Example State University",
+        "dates": "2011 - 2015",
+        "gpa": "3.8",
+        "honors": ["Dean's List", "Student Government President"]
+      }
+    ],
+  
+    "certifications": [
+      {
+        "name": "Certified Commercial Contract Manager (CCCM)",
+        "organization": "NCMA",
+        "year": "2025"
+      },
+      {
+        "name": "Certified Paralegal",
+        "organization": "NALA",
+        "year": "2023"
+      }
+    ],
+  
+    "languages": [
+      {
+        "language": "English",
+        "proficiency": "Native"
+      },
+      {
+        "language": "Spanish",
+        "proficiency": "Professional Working"
+      }
+    ],
+  
+    "preferences": {
+      "desired_job_titles": [
+        "Contract Manager",
+        "Senior Contract Specialist",
+        "Compliance Manager"
+      ],
+      "industry_preferences": [
+        "Legal Services",
+        "Finance",
+        "Government Contracting"
+      ],
+      "desired_salary_range": "$110,000 - $140,000",
+      "preferred_work_environment": "Hybrid"
+    },
+  
+    "special_instructions": [
+      "Never fabricate data or experience not present in user file.",
+      "Do not mention user is unemployed.",
+      "Keep a professional yet warm tone.",
+      "If the job posting suggests a cover letter is optional, still include one.",
+      "If the job description is vague, emphasize risk mitigation and compliance.",
+      "Highlight regulatory compliance experience in all cases.",
+      "De-emphasize the JD if the job is not explicitly legal-focused."
+    ]
+  }  
