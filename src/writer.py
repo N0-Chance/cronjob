@@ -105,8 +105,20 @@ def process_next_writing_job():
     plain_cover = strip_reportlab_tags(cover_letter_text)
 
     # Build PDFs
-    create_pdf_reportlab(resume_text, resume_pdf_path, doc_title=f"{FULL_NAME}", leftMargin=0.5*inch, rightMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch, job_title=job_title)
-    create_pdf_reportlab(cover_letter_text, cover_letter_pdf_path, doc_title=f"{FULL_NAME} - Cover Letter for {job_title}", job_title=job_title)
+    create_pdf_reportlab(
+        resume_text, resume_pdf_path, doc_title=f"{FULL_NAME}",
+        leftMargin=0.5*inch, rightMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch,
+        job_title=job_title, creation_time_range=(2*24*60, 14*24*60)  # 2-14 days ago
+    )
+
+    create_pdf_reportlab(
+        cover_letter_text, cover_letter_pdf_path, doc_title=f"{FULL_NAME} - Cover Letter for {job_title}",
+        job_title=job_title, creation_time_range=(2, 60)  # 2-60 minutes ago
+    )
+
+    # Post-process PDFs to add metadata
+    post_process_pdf(resume_pdf_path, f"{FULL_NAME}", job_title, creation_time_range=(2*24*60, 14*24*60))  # 2-14 days ago
+    post_process_pdf(cover_letter_pdf_path, f"{FULL_NAME} - Cover Letter for {job_title}", job_title, creation_time_range=(2, 60))  # 2-60 minutes ago
 
     # 4) Update DB
     conn = sqlite3.connect(DB_PATH)
@@ -208,7 +220,7 @@ Include a skills section with a list of skills that are relevant to the job.
 Inclue the dates next to the relevant experience.
 Attept to minimize the resume to one page.
 {extra_reportlab_line}
-At the end return honest and objective feedback about the resume and user data. What could be done by the user to improve their odds of getting the job? What do you think about the user's experience and skills? What could be improved? What kind of data do you want from the user in the future? Is the user a good fit for the job? Answer all questions and wrap all feedback in <f></f> tags.
+At the end return honest and objective feedback about the resume and user data. What could be done by the user to improve their odds of getting the job? What requirements did the user meet and not meet? What kind of data would have helped create a better resume? Is the user a good fit for the job? What are the chances the user gets interviewed for the position? Answer all questions and wrap all feedback in <f></f> tags.
 """
     resp = openai.chat.completions.create(
         model=WRITER_MODEL,
@@ -275,7 +287,7 @@ Today's date: {today_str}.
 - do not use formatting (such as **this**) other than <b>bold</b>, <br/>
 - only include what's valid from user data
 - avoid false information
-- never include placeholders like [Employer Name], if you do not have the information, omit it
+- never include placeholders like [Employer Name] or Address placeholders, if you do not have the information, omit it
 - only use paragraphs, do not include bullet points
 """
     r = openai.chat.completions.create(
@@ -312,7 +324,7 @@ def strip_reportlab_tags(markup_text):
 
 def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
                          leftMargin=inch, rightMargin=inch,
-                         topMargin=inch, bottomMargin=inch, job_title=""):
+                         topMargin=inch, bottomMargin=inch, job_title="", creation_time_range=(2*24*60, 14*24*60)):
     """
     - We have two doc types: resume vs cover letter. 
     - If doc_title has "Cover Letter", we do 10pt. Else 9pt for resume.
@@ -359,10 +371,11 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
 
     first_line_found = False
 
-    # Remove triple backticks **markdown** and [brackets]
+    # Remove triple backticks **markdown** [brackets] and rogue formatting inclusions
     markup_text = re.sub(r"```+", "", markup_text)
     markup_text = re.sub(r"\*\*(.*?)\*\*", r"\1", markup_text)
     markup_text = re.sub(r"\[(.*?)\]", r"\1", markup_text)
+    markup_text = re.sub(r"\b(plaintext|xml|markup|markdown)\b", "", markup_text, flags=re.IGNORECASE)
 
     # split lines
     lines = markup_text.split("\n")
@@ -416,14 +429,25 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
 
     # Build the PDF normally
     doc.build(story)
+
+    # Post-process the PDF to add metadata
+    post_process_pdf(pdf_path, doc_title, job_title, creation_time_range)
+
     print(f"{doc_title} PDF created: {pdf_path}")
 
-    # ----- POST-PROCESS METADATA WITH PyPDF2 -----
-    # Generate a random past date within 1-14 days
-    random_days_ago = random.randint(1, 14)
-    random_creation_date = datetime.now() - timedelta(days=random_days_ago)
-    # Format creation date in (D:YYYYMMDDHHMMSS)
+def post_process_pdf(pdf_path, doc_title, job_title, creation_time_range):
+    """Post-process the PDF to add metadata."""
+    # Generate a random past date within the specified time range
+    random_minutes_ago = random.randint(*creation_time_range)
+    random_creation_date = datetime.now() - timedelta(minutes=random_minutes_ago)
+
+    # Format creation date (D:YYYYMMDDHHMMSS)
     formatted_creation_date = f"(D:{random_creation_date.strftime('%Y%m%d%H%M%S')})"
+
+    # Calculate ModDate as CreationDate plus 2-30 minutes, ensuring it doesn't exceed the present time
+    random_minutes = random.randint(2, 30)
+    mod_date = min(datetime.now(), random_creation_date + timedelta(minutes=random_minutes))
+    formatted_mod_date = f"(D:{mod_date.strftime('%Y%m%d%H%M%S')})"
 
     # Read the just-built PDF
     with open(pdf_path, "rb") as original_pdf:
@@ -440,12 +464,12 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
             "/Creator": "Microsoft Word",
             "/Producer": "Acrobat PDFMaker 21.0 for Word",
             "/CreationDate": formatted_creation_date,
-            "/ModDate": formatted_creation_date
+            "/ModDate": formatted_mod_date
         }
         writer.add_metadata(metadata)
 
         # Write out the updated PDF (overwrite the original)
         with open(pdf_path, "wb") as updated_pdf:
             writer.write(updated_pdf)
-    # ----- END POST-PROCESS -----
+
     print(f"Metadata updated for {doc_title} PDF: {pdf_path}")

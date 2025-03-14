@@ -3,7 +3,7 @@ import sqlite3
 import logging
 import datetime
 from input import process_jobs as ingest_jobs
-from scraper import scrape_form
+from scraper import process_next_job, scrape_form
 from writer import process_next_writing_job as process_next_writing_jon
 import asyncio
 import json
@@ -79,6 +79,24 @@ def initialize_database():
         feedback TEXT,
         submission_status TEXT,
         applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                         
+    );
+        CREATE TABLE IF NOT EXISTS unable_to_scrape (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE NOT NULL,
+        error TEXT,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        job_title TEXT,
+        JD TEXT,
+        JD_reason TEXT,
+        job_data JSON,
+        resume TEXT,
+        resume_pdf TEXT,
+        cover_letter TEXT,
+        cover_letter_pdf TEXT,
+        feedback TEXT,
+        submission_status TEXT,
+        started_at TIMESTAMP
     );
     """)
 
@@ -88,54 +106,15 @@ def initialize_database():
 
 # Job Processing Loop
 async def process_queue():
-    """Processes jobs in the queue and moves them to processing."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+    """Process a job using scraper.py's logic and move only valid ones forward."""
+    success = await process_next_job()  # This now handles scraping, failure cases, etc.
 
-    # Fetch the oldest pending job
-    cursor.execute("SELECT id, url FROM queue WHERE status='pending' ORDER BY id ASC LIMIT 1")
-    job = cursor.fetchone()
-
-    if not job:
-        logging.info("No jobs in queue. Waiting for new jobs...")
-        conn.close()
+    if success:
+        logging.info("Successfully scraped a job and moved it forward.")
+        return True
+    else:
+        logging.info("No valid jobs scraped. Waiting for new jobs...")
         return False
-
-    job_id, job_url = job
-    logging.info(f"Processing job: {job_url}")
-
-    # Move job to processing **before** removing from queue
-    try:
-        cursor.execute("INSERT INTO processing (url, status) VALUES (?, 'scraping')", (job_url,))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        logging.warning(f"Job already in processing: {job_url}")
-        conn.close()
-        return False  # Stop here if it's already being processed
-
-    # Now remove it from queue
-    cursor.execute("DELETE FROM queue WHERE id=?", (job_id,))
-    conn.commit()
-    conn.close()
-
-    # Run scraper
-    try:
-        job_data = await scrape_form(job_url)  # Ensure async call is awaited
-        full_data = json.dumps(job_data)  # Convert JSON to a string for storage
-
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            "UPDATE processing SET job_data=?, status='scraped' WHERE url=?",
-            (full_data, job_url)
-        )
-        conn.commit()
-        conn.close()
-        logging.info(f"Scraped job data for: {job_url}")
-    except Exception as e:
-        logging.error(f"Error scraping {job_url}: {e}")
-
-    return True
 
 # Main Execution Loop
 async def main():

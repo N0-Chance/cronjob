@@ -45,8 +45,8 @@ def update_gist(new_content, updated_count):
     response = requests.patch(GIST_URL, headers=HEADERS, data=json.dumps(data))
     if response.status_code == 200 and updated_count > 0:
         print(f"Gist updated with {updated_count} queued jobs.")
-    elif updated_count == 0:
-        print("No new jobs to queue. Gist remains unchanged.")
+    #elif updated_count == 0:
+        #print("No new jobs to queue. Gist remains unchanged.")
 
 def is_url_in_database(url):
     """Check if a URL already exists in queue or processing."""
