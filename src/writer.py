@@ -5,6 +5,7 @@ import openai
 import json
 import random
 import PyPDF2
+import requests
 from datetime import datetime, timedelta
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.units import inch
@@ -19,8 +20,12 @@ from dotenv import load_dotenv
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 WRITER_MODEL = os.getenv("WRITER_MODEL", "gpt-4o")
+JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")
 FILE_NAME = os.getenv("FILE_NAME")
 FULL_NAME = os.getenv("FULL_NAME")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GIST_ID = os.getenv("GIST_ID")
+GIST_URL = f"https://api.github.com/gists/{GIST_ID}"
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -32,6 +37,12 @@ USER_FILE = os.path.join(CONFIG_DIR, "user.json")
 OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Headers for authentication
+HEADERS = {
+    "Authorization": f"token {GITHUB_TOKEN}",
+    "Accept": "application/vnd.github.v3+json"
+}
+
 def load_user_data():
     """Load user data from config/user.json."""
     if not os.path.exists(USER_FILE):
@@ -41,7 +52,7 @@ def load_user_data():
         return json.load(f)
 
 def process_next_writing_job():
-    """Main job logic: get next scraping, decide JD, generate text, build PDFs."""
+    """Main job logic: get next scraping, decide JD, generate text, build PDFs, finalize."""
     user_data = load_user_data()
     if not user_data:
         print("No user data loaded. Cannot generate resumes/cover letters.")
@@ -68,39 +79,51 @@ def process_next_writing_job():
 
     print(f"Preparing to generate resume & cover letter for job id={job_id}, url={job_url}")
 
-    # 1) Decide JD approach if not set
+    # Decide JD approach if not set, and capture job_company
+    job_company = "Unknown"
     if not current_jd_value:
-        approach, explanation, job_title = determine_jd_approach(job_data)
+        approach, explanation, job_title, job_company = determine_jd_approach(job_data)
         conn = sqlite3.connect(DB_PATH)
         c2 = conn.cursor()
         c2.execute(
-            "UPDATE processing SET JD=?, JD_reason=?, job_title=? WHERE id=?",
-            (approach, explanation, job_title, job_id)
+            "UPDATE processing SET JD=?, JD_reason=?, job_title=?, job_company=? WHERE id=?",
+            (approach, explanation, job_title, job_company, job_id)
         )
         conn.commit()
         conn.close()
         current_jd_value = approach
         jd_reason = explanation
-        print(f"Decided JD approach='{approach}' for job id={job_id}\nReason: {explanation}\nJob Title: {job_title}")
+        print(f"Decided JD approach='{approach}' for job id={job_id}\nReason: {explanation}\nJob Title: {job_title}\nCompany: {job_company}")
     else:
+        # If already set, fetch the existing job_company from DB
+        conn = sqlite3.connect(DB_PATH)
+        c2 = conn.cursor()
+        c2.execute("SELECT job_company FROM processing WHERE id=?", (job_id,))
+        row_company = c2.fetchone()
+        conn.close()
+        if row_company and row_company[0]:
+            job_company = row_company[0]
         print(f"JD approach already decided: {current_jd_value} for job id={job_id}")
         if jd_reason:
             print(f"Reason: {jd_reason}")
         if job_title:
             print(f"Job Title: {job_title}")
+        print(f"Company: {job_company}")
 
     # 2) Generate textual resume & cover letter
     resume_text, feedback = generate_resume_text(user_data, job_data, current_jd_value, jd_reason)
     cover_letter_text = generate_cover_letter_text(user_data, job_data, current_jd_value, jd_reason)
 
     # 3) Convert to PDF (reportlab)
-    job_output_dir = os.path.join(OUTPUT_DIR, str(job_id))
+    # Build a directory name that's safe on Windows
+    folder_name = f"{job_id} - {job_title} - {job_company}"
+    folder_name = re.sub(r'[\\/:*?"<>|]+', '_', folder_name)
+    job_output_dir = os.path.join(OUTPUT_DIR, folder_name)
     os.makedirs(job_output_dir, exist_ok=True)
+
     resume_pdf_path = os.path.join(job_output_dir, f"{FILE_NAME}_resume.pdf")
     cover_letter_pdf_path = os.path.join(job_output_dir, f"{FILE_NAME}_coverletter.pdf")
 
-    # We'll store plain_text as the same (since GPT returns "reportlab" markup, 
-    # but let's keep a fallback).
     plain_resume = strip_reportlab_tags(resume_text)
     plain_cover = strip_reportlab_tags(cover_letter_text)
 
@@ -108,19 +131,18 @@ def process_next_writing_job():
     create_pdf_reportlab(
         resume_text, resume_pdf_path, doc_title=f"{FULL_NAME}",
         leftMargin=0.5*inch, rightMargin=0.5*inch, topMargin=0.5*inch, bottomMargin=0.5*inch,
-        job_title=job_title, creation_time_range=(2*24*60, 14*24*60)  # 2-14 days ago
+        job_title=job_title, creation_time_range=(2*24*60, 14*24*60)
     )
 
     create_pdf_reportlab(
         cover_letter_text, cover_letter_pdf_path, doc_title=f"{FULL_NAME} - Cover Letter for {job_title}",
-        job_title=job_title, creation_time_range=(2, 60)  # 2-60 minutes ago
+        job_title=job_title, creation_time_range=(2, 60)
     )
 
-    # Post-process PDFs to add metadata
-    post_process_pdf(resume_pdf_path, f"{FULL_NAME}", job_title, creation_time_range=(2*24*60, 14*24*60))  # 2-14 days ago
-    post_process_pdf(cover_letter_pdf_path, f"{FULL_NAME} - Cover Letter for {job_title}", job_title, creation_time_range=(2, 60))  # 2-60 minutes ago
+    post_process_pdf(resume_pdf_path, f"{FULL_NAME}", job_title, creation_time_range=(2*24*60, 14*24*60))
+    post_process_pdf(cover_letter_pdf_path, f"{FULL_NAME} - Cover Letter for {job_title}", job_title, creation_time_range=(2, 60))
 
-    # 4) Update DB
+    # 4) Update DB with final data
     conn = sqlite3.connect(DB_PATH)
     c3 = conn.cursor()
     c3.execute("""
@@ -134,11 +156,29 @@ def process_next_writing_job():
         WHERE id=?
     """, (plain_resume, resume_pdf_path, plain_cover, cover_letter_pdf_path, feedback, job_id))
     conn.commit()
+
+    # 5) Move this record to 'processed' table and remove from 'processing'
+    c3.execute("""
+        INSERT INTO processed (id, url, job_title, job_company, JD, JD_reason, job_data, 
+                            resume, resume_pdf, cover_letter, cover_letter_pdf, feedback, 
+                            status, started_at, finished_at, emailed)
+        SELECT id, url, job_title, job_company, JD, JD_reason, job_data, 
+            resume, resume_pdf, cover_letter, cover_letter_pdf, feedback, 
+            status, started_at, CURRENT_TIMESTAMP, 0 
+        FROM processing WHERE id=?
+    """, (job_id,))
+
+    c3.execute("DELETE FROM processing WHERE id=?", (job_id,))
+    conn.commit()
     conn.close()
+
+    # 6) Mark as done in the Gist
+    update_gist_with_done(job_url)
+
     return True
 
 def determine_jd_approach(job_data):
-    """Ask GPT if we want JD-Advantage or JD-Light and get the job title."""
+    """Ask GPT if we want JD-Advantage or JD-Light, get the job title, and the company name."""
     prompt_text = f"""
 You are an AI career counselor. The user might have a Juris Doctor (JD) background.
 We have the following job data:
@@ -148,21 +188,24 @@ Decide if the user should highlight their JD (JD-Advantage) or downplay it (JD-L
 On the first line, output exactly one of these strings: JD-Advantage or JD-Light
 On the second line, give a short reason for your choice.
 On the third line, provide the job title.
+On the fourth line, provide the company name.
 """
     r = openai.chat.completions.create(
-        model=WRITER_MODEL,
+        model=JUDGE_MODEL,
         messages=[
             {"role": "system", "content": "You are a helpful AI career counselor."},
             {"role": "user", "content": prompt_text}
         ],
         temperature=0.0,
-        max_tokens=50
+        max_tokens=100
     )
     raw = r.choices[0].message.content.strip()
     lines = raw.split('\n')
     approach = "JD-Advantage"
     explanation = "No explanation provided."
     job_title = "Unknown"
+    job_company = "Unknown"
+
     if lines:
         if "light" in lines[0].lower():
             approach = "JD-Light"
@@ -172,7 +215,10 @@ On the third line, provide the job title.
             explanation = lines[1].strip()
         if len(lines) > 2:
             job_title = lines[2].strip()
-    return (approach, explanation, job_title)
+        if len(lines) > 3:
+            job_company = lines[3].strip()
+
+    return (approach, explanation, job_title, job_company)
 
 def generate_resume_text(user_data, job_data, approach, jd_reason):
     special_instructions = user_data.get("special_instructions", [])
@@ -213,7 +259,7 @@ Balance the skills, experience, and education sections accordingly.
 Do not include demographic information.
 Do not include eligibility status other than willingness to relocate or travel.
 Include phone number, email, website, and LinkedIn profile as a single line separated by | as the first line. Do not include a name.
-Do not inclue any N/A, placeholders, hyperlinks, or brackets.
+Do not inclue any N/A, placeholders, hyperlinks, or brackets - omit any information you do not have.
 Write a paragraph for the summary section in an objective third person voice without using any first person pronouns or the user's name.
 Explain how the user's experience and skills align with the job requirements and could benefit the company.
 Include a skills section with a list of skills that are relevant to the job.
@@ -283,7 +329,7 @@ Today's date: {today_str}.
 - mention job title & company in first paragraph
 - mention willingness to relocate or travel
 - mention how user chose position career over law
-- do not use any N/A, placeholder text, hyperlinks, or brackets
+- do not use any N/A, placeholder text, hyperlinks, or brackets - omit any information you do not have
 - do not use formatting (such as **this**) other than <b>bold</b>, <br/>
 - only include what's valid from user data
 - avoid false information
@@ -436,7 +482,7 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
     print(f"{doc_title} PDF created: {pdf_path}")
 
 def post_process_pdf(pdf_path, doc_title, job_title, creation_time_range):
-    """Post-process the PDF to add metadata."""
+    """Post-process the PDF to spoof metadata."""
     # Generate a random past date within the specified time range
     random_minutes_ago = random.randint(*creation_time_range)
     random_creation_date = datetime.now() - timedelta(minutes=random_minutes_ago)
@@ -459,8 +505,8 @@ def post_process_pdf(pdf_path, doc_title, job_title, creation_time_range):
         metadata = {
             "/Title": doc_title,
             "/Author": FULL_NAME,
-            "/Subject": f"{FULL_NAME} Resume",
-            "/Keywords": f"Resume, Cover Letter, {job_title}, {FULL_NAME}",
+            "/Subject": f"{FULL_NAME} {job_title}",
+            "/Keywords": f"{job_title}, {FULL_NAME}",
             "/Creator": "Microsoft Word",
             "/Producer": "Acrobat PDFMaker 21.0 for Word",
             "/CreationDate": formatted_creation_date,
@@ -472,4 +518,25 @@ def post_process_pdf(pdf_path, doc_title, job_title, creation_time_range):
         with open(pdf_path, "wb") as updated_pdf:
             writer.write(updated_pdf)
 
-    print(f"Metadata updated for {doc_title} PDF: {pdf_path}")
+    #print(f"Metadata updated for {doc_title} PDF: {pdf_path}")
+
+def update_gist_with_done(job_url):
+    """Mark job as done in the Gist."""
+    response = requests.get(GIST_URL, headers=HEADERS)
+    if response.status_code == 200:
+        gist_data = response.json()
+        if "cronjob_input.txt" in gist_data["files"]:
+            file_content = gist_data["files"]["cronjob_input.txt"]["content"].strip().split("\n")
+            updated_lines = []
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            for line in file_content:
+                if job_url in line and "[DONE -" not in line:
+                    updated_lines.append(f"[DONE - {timestamp}] {job_url}")
+                else:
+                    updated_lines.append(line)
+            
+            data = {"files": {"cronjob_input.txt": {"content": "\n".join(updated_lines)}}}
+            response = requests.patch(GIST_URL, headers=HEADERS, data=json.dumps(data))
+            if response.status_code == 200:
+                print(f"Marked job as DONE in Gist: {job_url}")

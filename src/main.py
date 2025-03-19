@@ -5,6 +5,7 @@ import datetime
 from input import process_jobs as ingest_jobs
 from scraper import process_next_job, scrape_form
 from writer import process_next_writing_job as process_next_writing_jon
+from emailer import check_and_send_emails
 import asyncio
 import json
 import openai
@@ -53,6 +54,7 @@ def initialize_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT UNIQUE NOT NULL,
         job_title TEXT,
+        job_company TEXT,
         JD TEXT,
         JD_reason TEXT,
         job_data JSON,
@@ -69,6 +71,7 @@ def initialize_database():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT UNIQUE NOT NULL,
         job_title TEXT,
+        job_company TEXT,
         JD TEXT,
         JD_reason TEXT,
         job_data JSON,
@@ -77,8 +80,10 @@ def initialize_database():
         cover_letter TEXT,
         cover_letter_pdf TEXT,
         feedback TEXT,
-        submission_status TEXT,
-        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        status TEXT,
+        started_at TIMESTAMP,
+        finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        emailed, BOOLEAN DEFAULT FALSE
                          
     );
         CREATE TABLE IF NOT EXISTS unable_to_scrape (
@@ -87,6 +92,7 @@ def initialize_database():
         error TEXT,
         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         job_title TEXT,
+        job_company TEXT,
         JD TEXT,
         JD_reason TEXT,
         job_data JSON,
@@ -132,6 +138,9 @@ async def main():
 
         # Run the writer
         process_next_writing_jon()
+
+        # Send emails for completed jobs
+        check_and_send_emails()
 
         if not job_processed:
             logging.info("Waiting before next cycle...")
