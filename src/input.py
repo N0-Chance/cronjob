@@ -4,11 +4,12 @@ import datetime
 import sqlite3
 import os
 from dotenv import load_dotenv
+from settings import config
 
 # Load environment variables
 load_dotenv()
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-GIST_ID = os.getenv("GIST_ID")
+GITHUB_TOKEN = config("GITHUB_TOKEN")
+GIST_ID = config("GIST_ID")
 GIST_URL = f"https://api.github.com/gists/{GIST_ID}"
 
 # Database path

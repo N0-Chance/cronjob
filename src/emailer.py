@@ -4,19 +4,20 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 from dotenv import load_dotenv
+from settings import config
 
 # Load environment variables
 load_dotenv()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "data.db")
 
-SMTP_SERVER = os.getenv("SMTP_SERVER")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
-SMTP_USERNAME = os.getenv("SMTP_USERNAME")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMTP_SERVER = config("SMTP_SERVER")
+SMTP_PORT = config("SMTP_PORT")
+SMTP_USERNAME = config("SMTP_USERNAME")
+SMTP_PASSWORD = config("SMTP_PASSWORD")
 
-EMAIL_FROM = os.getenv("EMAIL_FROM")  # e.g. "noreply@yourdomain.com"
-EMAIL_TO = os.getenv("EMAIL_TO")      # your personal address
+EMAIL_FROM = config("EMAIL_FROM")  # e.g. "noreply@yourdomain.com"
+EMAIL_TO = config("EMAIL_TO")      # your personal address
 
 def check_and_send_emails():
     """Check the processed table for any row where emailed=0, then send the email with attachments."""

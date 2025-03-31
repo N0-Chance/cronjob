@@ -15,16 +15,17 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 from dotenv import load_dotenv
+from settings import config
 
 # Load environment variables
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
-WRITER_MODEL = os.getenv("WRITER_MODEL", "gpt-4o")
-JUDGE_MODEL = os.getenv("JUDGE_MODEL", "gpt-4o")
-FILE_NAME = os.getenv("FILE_NAME")
-FULL_NAME = os.getenv("FULL_NAME")
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-GIST_ID = os.getenv("GIST_ID")
+openai.api_key = config("OPENAI_API_KEY")
+WRITER_MODEL = config("WRITER_MODEL")
+JUDGE_MODEL = config("JUDGE_MODEL")
+FILE_NAME = config("FILE_NAME")
+FULL_NAME = config("FULL_NAME")
+GITHUB_TOKEN = config("GITHUB_TOKEN")
+GIST_ID = config("GIST_ID")
 GIST_URL = f"https://api.github.com/gists/{GIST_ID}"
 
 # Paths
