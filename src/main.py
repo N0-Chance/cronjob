@@ -1,15 +1,12 @@
 import os
 import sqlite3
 import logging
-import datetime
 from input import process_jobs as ingest_jobs
 from scraper import process_next_job, scrape_form
 from writer import process_next_writing_job as process_next_writing_jon
 from emailer import check_and_send_emails
 from settings import config
 import asyncio
-import json
-import openai
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -56,8 +53,8 @@ def initialize_database():
         url TEXT UNIQUE NOT NULL,
         job_title TEXT,
         job_company TEXT,
-        JD TEXT,
-        JD_reason TEXT,
+        degree TEXT,
+        degree_reason TEXT,
         job_data JSON,
         resume TEXT,
         resume_pdf TEXT,
@@ -73,8 +70,8 @@ def initialize_database():
         url TEXT UNIQUE NOT NULL,
         job_title TEXT,
         job_company TEXT,
-        JD TEXT,
-        JD_reason TEXT,
+        degree TEXT,
+        degree_reason TEXT,
         job_data JSON,
         resume TEXT,
         resume_pdf TEXT,
@@ -94,8 +91,8 @@ def initialize_database():
         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         job_title TEXT,
         job_company TEXT,
-        JD TEXT,
-        JD_reason TEXT,
+        degree TEXT,
+        degree_reason TEXT,
         job_data JSON,
         resume TEXT,
         resume_pdf TEXT,

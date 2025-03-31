@@ -3,11 +3,7 @@ import sqlite3
 import smtplib
 import ssl
 from email.message import EmailMessage
-from dotenv import load_dotenv
 from settings import config
-
-# Load environment variables
-load_dotenv()
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "data.db")
 
@@ -26,7 +22,7 @@ def check_and_send_emails():
 
     # Grab all rows in 'processed' that haven't been emailed yet
     cursor.execute("""
-        SELECT id, job_title, job_company, JD, JD_reason, started_at, finished_at,
+        SELECT id, job_title, job_company, degree, degree_reason, started_at, finished_at,
                feedback, resume_pdf, cover_letter_pdf
         FROM processed
         WHERE emailed=0
@@ -40,13 +36,13 @@ def check_and_send_emails():
 
     # For each row, send an email, then update
     for row in rows:
-        (job_id, job_title, job_company, JD, JD_reason, started_at,
+        (job_id, job_title, job_company, degree, degree_reason, started_at,
          finished_at, feedback, resume_pdf, cover_letter_pdf) = row
 
         # Build and send the email
         send_email_with_attachments(
             job_id, job_title, job_company,
-            JD, JD_reason, started_at, finished_at,
+            degree, degree_reason, started_at, finished_at,
             feedback, resume_pdf, cover_letter_pdf
         )
 
@@ -56,9 +52,8 @@ def check_and_send_emails():
 
     conn.close()
 
-
 def send_email_with_attachments(job_id, job_title, job_company,
-                                JD, JD_reason, started_at, finished_at,
+                                degree, degree_reason, started_at, finished_at,
                                 feedback, resume_pdf, cover_letter_pdf):
     """Construct and send the email via SMTP."""
 
@@ -66,7 +61,7 @@ def send_email_with_attachments(job_id, job_title, job_company,
     body = (
         f"cronjob #{job_id}\n"
         f"{job_title} at {job_company}\n"
-        f"{JD}: {JD_reason}\n"
+        f"{degree}: {degree_reason}\n"
         f"Started: {started_at}\n"
         f"Finished: {finished_at}\n\n"
         f"{feedback}\n"
@@ -96,7 +91,6 @@ def send_email_with_attachments(job_id, job_title, job_company,
 
 
     print(f"Email sent successfully for job_id={job_id} to {EMAIL_TO}.\n")
-
 
 if __name__ == "__main__":
     # You can either run this module manually, or set up a schedule (cron) to run it periodically

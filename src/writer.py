@@ -14,11 +14,9 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from dotenv import load_dotenv
 from settings import config
 
 # Load environment variables
-load_dotenv()
 openai.api_key = config("OPENAI_API_KEY")
 WRITER_MODEL = config("WRITER_MODEL")
 JUDGE_MODEL = config("JUDGE_MODEL")
@@ -53,7 +51,7 @@ def load_user_data():
         return json.load(f)
 
 def process_next_writing_job():
-    """Main job logic: get next scraping, decide JD, generate text, build PDFs, finalize."""
+    """Main job logic: get next scraping, decide degree decesion, generate text, build PDFs, finalize."""
     user_data = load_user_data()
     if not user_data:
         print("No user data loaded. Cannot generate resumes/cover letters.")
@@ -62,7 +60,7 @@ def process_next_writing_job():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT id, url, job_data, JD, JD_reason, job_title
+        SELECT id, url, job_data, degree, degree_reason, job_title
         FROM processing
         WHERE status='scraped'
         ORDER BY id ASC
@@ -74,27 +72,27 @@ def process_next_writing_job():
         conn.close()
         return False
 
-    job_id, job_url, job_data_json, current_jd_value, jd_reason, job_title = row
+    job_id, job_url, job_data_json, current_degree_value, degree_reason, job_title = row
     job_data = json.loads(job_data_json)
     conn.close()
 
     print(f"Preparing to generate resume & cover letter for job id={job_id}, url={job_url}")
 
-    # Decide JD approach if not set, and capture job_company
+    # Decide degree approach if not set, and capture job_company
     job_company = "Unknown"
-    if not current_jd_value:
-        approach, explanation, job_title, job_company = determine_jd_approach(job_data)
+    if not current_degree_value:
+        approach, explanation, job_title, job_company = determine_degree_approach(job_data, user_data)
         conn = sqlite3.connect(DB_PATH)
         c2 = conn.cursor()
         c2.execute(
-            "UPDATE processing SET JD=?, JD_reason=?, job_title=?, job_company=? WHERE id=?",
+            "UPDATE processing SET degree=?, degree_reason=?, job_title=?, job_company=? WHERE id=?",
             (approach, explanation, job_title, job_company, job_id)
         )
         conn.commit()
         conn.close()
-        current_jd_value = approach
-        jd_reason = explanation
-        print(f"Decided JD approach='{approach}' for job id={job_id}\nReason: {explanation}\nJob Title: {job_title}\nCompany: {job_company}")
+        current_degree_value = approach
+        degree_reason = explanation
+        print(f"Decided degree approach='{approach}' for job id={job_id}\nReason: {explanation}\nJob Title: {job_title}\nCompany: {job_company}")
     else:
         # If already set, fetch the existing job_company from DB
         conn = sqlite3.connect(DB_PATH)
@@ -104,16 +102,16 @@ def process_next_writing_job():
         conn.close()
         if row_company and row_company[0]:
             job_company = row_company[0]
-        print(f"JD approach already decided: {current_jd_value} for job id={job_id}")
-        if jd_reason:
-            print(f"Reason: {jd_reason}")
+        print(f"degree approach already decided: {current_degree_value} for job id={job_id}")
+        if degree_reason:
+            print(f"Reason: {degree_reason}")
         if job_title:
             print(f"Job Title: {job_title}")
         print(f"Company: {job_company}")
 
     # 2) Generate textual resume & cover letter
-    resume_text, feedback = generate_resume_text(user_data, job_data, current_jd_value, jd_reason)
-    cover_letter_text = generate_cover_letter_text(user_data, job_data, current_jd_value, jd_reason)
+    resume_text, feedback = generate_resume_text(user_data, job_data, current_degree_value, degree_reason)
+    cover_letter_text = generate_cover_letter_text(user_data, job_data, current_degree_value, degree_reason)
 
     # 3) Convert to PDF (reportlab)
     # Build a directory name that's safe on Windows
@@ -160,10 +158,10 @@ def process_next_writing_job():
 
     # 5) Move this record to 'processed' table and remove from 'processing'
     c3.execute("""
-        INSERT INTO processed (id, url, job_title, job_company, JD, JD_reason, job_data, 
+        INSERT INTO processed (id, url, job_title, job_company, degree, degree_reason, job_data, 
                             resume, resume_pdf, cover_letter, cover_letter_pdf, feedback, 
                             status, started_at, finished_at, emailed)
-        SELECT id, url, job_title, job_company, JD, JD_reason, job_data, 
+        SELECT id, url, job_title, job_company, degree, degree_reason, job_data, 
             resume, resume_pdf, cover_letter, cover_letter_pdf, feedback, 
             status, started_at, CURRENT_TIMESTAMP, 0 
         FROM processing WHERE id=?
@@ -178,18 +176,29 @@ def process_next_writing_job():
 
     return True
 
-def determine_jd_approach(job_data):
-    """Ask GPT if we want JD-Advantage or JD-Light, get the job title, and the company name."""
+def determine_degree_approach(job_data, user_data):
+    education = user_data.get("education", [])
+    education_text = json.dumps(education, indent=2)
+    """Ask GPT if we want degree-Advantage or degree-Light, get the job title, and the company name."""
     prompt_text = f"""
-You are an AI career counselor. The user might have a Juris Doctor (JD) background.
-We have the following job data:
+You are an AI career counselor. The user may have an advanced degree such as a JD, MBA, PhD, or other.
+
+Your job is to decide whether the user's degree(s) should be emphasized (Degree-Advantage) or minimized (Degree-Light) in the resume and cover letter, to overcome ATS filters and get the user an interview.
+
+You are given:
+- Job data (scraped from the application page)
+- User's education history
+
+Job Data:
 {json.dumps(job_data, indent=2)}
 
-Decide if the user should highlight their JD (JD-Advantage) or downplay it (JD-Light).
-On the first line, output exactly one of these strings: JD-Advantage or JD-Light
-On the second line, give a short reason for your choice.
-On the third line, provide the job title.
-On the fourth line, provide the company name.
+User Education:
+{education_text}
+
+On the first line, output exactly one of these strings: Degree-Advantage or Degree-Light  
+On the second line, give a short reason for your choice.  
+On the third line, output the job title.  
+On the fourth line, output the company name.
 """
     r = openai.chat.completions.create(
         model=JUDGE_MODEL,
@@ -202,16 +211,16 @@ On the fourth line, provide the company name.
     )
     raw = r.choices[0].message.content.strip()
     lines = raw.split('\n')
-    approach = "JD-Advantage"
+    approach = "Degree-Advantage"
     explanation = "No explanation provided."
     job_title = "Unknown"
     job_company = "Unknown"
 
     if lines:
         if "light" in lines[0].lower():
-            approach = "JD-Light"
+            approach = "Degree-Light"
         elif "advantage" in lines[0].lower():
-            approach = "JD-Advantage"
+            approach = "Degree-Advantage"
         if len(lines) > 1:
             explanation = lines[1].strip()
         if len(lines) > 2:
@@ -221,15 +230,15 @@ On the fourth line, provide the company name.
 
     return (approach, explanation, job_title, job_company)
 
-def generate_resume_text(user_data, job_data, approach, jd_reason):
+def generate_resume_text(user_data, job_data, approach, degree_reason):
     special_instructions = user_data.get("special_instructions", [])
     instructions_str = "\n".join(f"- {ins}" for ins in special_instructions)
     job_json = json.dumps(job_data, indent=2)
     user_json = json.dumps(user_data, indent=2)
 
     advantage_line = ""
-    if approach == "JD-Advantage" and jd_reason:
-        advantage_line = f"\nAdditionally, highlight the JD advantage: {jd_reason}"
+    if approach == "degree-Advantage" and degree_reason:
+        advantage_line = f"\nAdditionally, highlight the degree advantage: {degree_reason}"
 
     extra_reportlab_line = """\nUse the following guidelines for formatting friendly with Python's ReportLab:
 - For bold text, use <b>bold text</b>.
@@ -254,7 +263,7 @@ Special Instructions:
 
 Avoid false information.
 Only incorporate what's valid from the user data.
-Balance the resume with the JD approach in mind. JD-Advantage (push the JD) or JD-Light (minimize). 
+Balance the resume with the degree approach in mind. degree-Advantage (push the degree) or degree-Light (minimize). 
 Either way, highlight how the unique degree would benefit the job.
 Balance the skills, experience, and education sections accordingly.
 Do not include demographic information.
@@ -289,7 +298,7 @@ At the end return honest and objective feedback about the resume and user data. 
 
     return resume_text, feedback
 
-def generate_cover_letter_text(user_data, job_data, approach, jd_reason):
+def generate_cover_letter_text(user_data, job_data, approach, degree_reason):
     # (unchanged)
     today_str = datetime.today().strftime("%B %d, %Y")
     si = user_data.get("special_instructions", [])
@@ -298,8 +307,8 @@ def generate_cover_letter_text(user_data, job_data, approach, jd_reason):
     user_json = json.dumps(user_data, indent=2)
 
     advantage_line = ""
-    if approach == "JD-Advantage" and jd_reason:
-        advantage_line = f"\nAdditionally, mention how the JD advantage helps: {jd_reason}"
+    if approach == "degree-Advantage" and degree_reason:
+        advantage_line = f"\nAdditionally, mention how the degree advantage helps: {degree_reason}"
 
     extra_reportlab_line = """\nUse the following guidelines for formatting:
 - <b> for bold headings

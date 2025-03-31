@@ -1,9 +1,6 @@
-import asyncio
 from playwright.async_api import async_playwright
 import json
-import re
 import sqlite3
-import os
 
 # Paths
 DB_PATH = "db/data.db"
@@ -19,9 +16,21 @@ def clean_data(data):
 async def scrape_form(url):
     """Scrapes the job posting and form details."""
     async with async_playwright() as p:
-        # Launch browser with JS enabled
+        # Launch browser
         browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(java_script_enabled=True)
+
+        # Use a real browser user-agent to reduce bot detection
+        real_user_agent = (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+
+        context = await browser.new_context(
+            java_script_enabled=True,
+            user_agent=real_user_agent
+        )
+
         page = await context.new_page()
 
         # Try loading the page with an extended timeout
@@ -77,6 +86,15 @@ async def scrape_form(url):
         # Fallback: Use full page text if no description is found
         if not page_text:
             page_text = await page.evaluate("() => document.body.innerText")
+        
+        # Detect cloud block or fake content
+        if "access to this page is restricted" in page_text.lower():
+            return {
+                "title": "Blocked",
+                "description": page_text.strip(),
+                "form_fields": [],
+                "error": "Cloud protection block page"
+            }
 
         # Extract form fields
         form_elements = await page.query_selector_all("input, select, textarea, button")
