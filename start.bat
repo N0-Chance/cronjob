@@ -1,6 +1,7 @@
 @echo off
 echo cronjob - Automated Job Resume and Cover Letter Writer
 echo ====================================================
+echo Let's get you a job!
 echo.
 
 :: Check if Python is installed
