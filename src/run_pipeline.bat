@@ -1,1 +1,0 @@
-cd /d c:\Users\chanc\Scripts\cronjob\src && set PYTHONPATH=c:\Users\chanc\Scripts\cronjob\src && set DB_PATH=c:\Users\chanc\Scripts\cronjob\src\db\data.db && python -u c:\Users\chanc\Scripts\cronjob\src\main.py | wtee

@@ -7,6 +7,9 @@ import logging
 import sqlite3
 import time
 import psutil
+import threading
+import queue
+import win32con
 
 class PipelineControl(customtkinter.CTkFrame):
     def __init__(self, parent):
@@ -24,6 +27,9 @@ class PipelineControl(customtkinter.CTkFrame):
             command=self.toggle_pipeline
         )
         self.start_stop_button.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
+        
+        # Create output queue for subprocess output
+        self.output_queue = queue.Queue()
         
     def toggle_pipeline(self):
         if self.pipeline_process is None:
@@ -116,20 +122,45 @@ class PipelineControl(customtkinter.CTkFrame):
             
             # Start the process in a new console window
             if sys.platform == "win32":
-                # On Windows, start Python directly in a new console window
+                # On Windows, we'll use a different approach to capture output while showing console
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = win32con.SW_SHOW
+                
                 self.pipeline_process = subprocess.Popen(
-                    ["python", main_script],
+                    ["cmd", "/c", "python", main_script],
                     cwd=gui_dir,
                     env={
                         **os.environ,
                         "PYTHONPATH": gui_dir,
-                        "DB_PATH": db_path
+                        "DB_PATH": db_path,
+                        "PYTHONUNBUFFERED": "1"  # Ensure Python output is unbuffered
                     },
-                    creationflags=subprocess.CREATE_NEW_CONSOLE
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    text=True,
+                    bufsize=1,
+                    startupinfo=startupinfo
                 )
                 
                 # Store the process ID for stopping later
                 self.process_id = self.pipeline_process.pid
+                
+                # Start threads to read stdout and stderr
+                self.stdout_thread = threading.Thread(
+                    target=self._read_output,
+                    args=(self.pipeline_process.stdout, "info"),
+                    daemon=True
+                )
+                self.stderr_thread = threading.Thread(
+                    target=self._read_output,
+                    args=(self.pipeline_process.stderr, "error"),
+                    daemon=True
+                )
+                
+                self.stdout_thread.start()
+                self.stderr_thread.start()
                 
                 # Update button state
                 self.start_stop_button.configure(text="Stop Pipeline")
@@ -138,11 +169,30 @@ class PipelineControl(customtkinter.CTkFrame):
             else:
                 # On Unix-like systems, use xterm
                 self.pipeline_process = subprocess.Popen(
-                    ["xterm", "-e", f"cd {gui_dir} && PYTHONPATH={gui_dir} DB_PATH={db_path} python {main_script}"]
+                    ["xterm", "-e", f"cd {gui_dir} && PYTHONPATH={gui_dir} DB_PATH={db_path} python {main_script}"],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1
                 )
                 
                 # Store the process ID for stopping later
                 self.process_id = self.pipeline_process.pid
+                
+                # Start threads to read stdout and stderr
+                self.stdout_thread = threading.Thread(
+                    target=self._read_output,
+                    args=(self.pipeline_process.stdout, "info"),
+                    daemon=True
+                )
+                self.stderr_thread = threading.Thread(
+                    target=self._read_output,
+                    args=(self.pipeline_process.stderr, "error"),
+                    daemon=True
+                )
+                
+                self.stdout_thread.start()
+                self.stderr_thread.start()
                 
                 # Update button state
                 self.start_stop_button.configure(text="Stop Pipeline")
@@ -150,6 +200,15 @@ class PipelineControl(customtkinter.CTkFrame):
             
         except Exception as e:
             logging.error(f"Failed to start pipeline: {str(e)}")
+            
+    def _read_output(self, pipe, level):
+        """Read output from a pipe and forward it to the console."""
+        try:
+            for line in iter(pipe.readline, ''):
+                if line:
+                    self.output_queue.put((line, level))
+        except Exception as e:
+            logging.error(f"Error reading pipe: {str(e)}")
             
     def stop_pipeline(self):
         if self.pipeline_process is not None:
@@ -171,4 +230,14 @@ class PipelineControl(customtkinter.CTkFrame):
                 # Always reset the state
                 self.pipeline_process = None
                 self.process_id = None
-                self.start_stop_button.configure(text="Start Pipeline") 
+                self.start_stop_button.configure(text="Start Pipeline")
+                
+    def update_console(self):
+        """Update the console with any queued output."""
+        try:
+            while True:
+                line, level = self.output_queue.get_nowait()
+                logging.log(getattr(logging, level.upper()), line.strip())
+                self.output_queue.task_done()
+        except queue.Empty:
+            pass 

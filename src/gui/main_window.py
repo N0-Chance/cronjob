@@ -35,6 +35,9 @@ class MainWindow(customtkinter.CTk):
         
         # Setup logging
         self.setup_logging()
+        
+        # Start periodic console update
+        self.after(100, self.update_console)
 
     def setup_left_panel(self):
         # Left panel for tab selection
@@ -108,6 +111,13 @@ class MainWindow(customtkinter.CTk):
         handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         logging.getLogger().addHandler(handler)
         logging.getLogger().setLevel(logging.INFO)
+
+    def update_console(self):
+        """Periodically update the console with pipeline output."""
+        if hasattr(self, 'pipeline_control'):
+            self.pipeline_control.update_console()
+        # Schedule next update
+        self.after(100, self.update_console)
 
     def start_pipeline(self):
         """Start the pipeline process."""
