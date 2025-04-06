@@ -47,7 +47,6 @@ def initialize_database():
         status TEXT DEFAULT 'pending',
         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-
     CREATE TABLE IF NOT EXISTS processing (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT UNIQUE NOT NULL,
@@ -64,7 +63,6 @@ def initialize_database():
         status TEXT DEFAULT 'scraping',
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-
     CREATE TABLE IF NOT EXISTS processed (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT UNIQUE NOT NULL,
@@ -82,9 +80,8 @@ def initialize_database():
         started_at TIMESTAMP,
         finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         emailed, BOOLEAN DEFAULT FALSE
-                         
     );
-        CREATE TABLE IF NOT EXISTS unable_to_scrape (
+    CREATE TABLE IF NOT EXISTS unable_to_scrape (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         url TEXT UNIQUE NOT NULL,
         error TEXT,
@@ -100,10 +97,9 @@ def initialize_database():
         cover_letter_pdf TEXT,
         feedback TEXT,
         submission_status TEXT,
-        started_at TIMESTAMP
-                         
+        started_at TIMESTAMP          
     );               
-        CREATE TABLE IF NOT EXISTS settings (
+    CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT
     );

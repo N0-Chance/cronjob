@@ -1,9 +1,14 @@
 from playwright.async_api import async_playwright
 import json
 import sqlite3
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # Paths
-DB_PATH = "db/data.db"
+DB_PATH = os.getenv("DB_PATH")
 
 def clean_data(data):
     """Remove empty fields to reduce token usage."""
