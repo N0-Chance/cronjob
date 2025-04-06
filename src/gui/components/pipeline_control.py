@@ -43,12 +43,13 @@ class PipelineControl(customtkinter.CTkFrame):
             gui_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             main_script = os.path.join(gui_dir, "main.py")
             
-            # Ensure the db directory exists
-            db_dir = os.path.join(gui_dir, "db")
+            # Ensure the db directory exists in the cronjob directory
+            workspace_dir = os.path.dirname(gui_dir)  # Go up one more level to get to cronjob directory
+            db_dir = os.path.join(workspace_dir, "db")
             os.makedirs(db_dir, exist_ok=True)
             
             # Initialize the database first
-            db_path = os.path.join(gui_dir, "db", "data.db")
+            db_path = os.path.join(workspace_dir, "db", "data.db")
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             

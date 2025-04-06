@@ -8,7 +8,8 @@ import os
 load_dotenv()
 
 # Paths
-DB_PATH = os.getenv("DB_PATH")
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "db", "data.db")
 
 def clean_data(data):
     """Remove empty fields to reduce token usage."""

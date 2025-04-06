@@ -2,6 +2,7 @@ import requests
 import json
 import datetime
 import sqlite3
+import os
 from settings import config
 
 GITHUB_TOKEN = config("GITHUB_TOKEN")
@@ -9,7 +10,8 @@ GIST_ID = config("GIST_ID")
 GIST_URL = f"https://api.github.com/gists/{GIST_ID}"
 
 # Database path
-DB_PATH = "db/data.db"
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, "db", "data.db")
 
 # Headers for authentication
 HEADERS = {
