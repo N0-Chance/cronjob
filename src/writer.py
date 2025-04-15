@@ -250,7 +250,7 @@ def generate_resume_text(user_data, job_data, approach, degree_reason):
 """
 
     prompt = f"""
-You are a resume writer AI. The user is building a {approach} resume. Write a professional resume for the user.
+You are a resume writer AI. The user is building a {approach} resume. Write a professional resume for the user to overcome ATS filters and get the user an interview.
 
 Job Data:
 {job_json}
@@ -259,7 +259,8 @@ User Data:
 {user_json}
 
 Special Instructions:
-{instructions_str}{advantage_line}
+{instructions_str}
+{advantage_line}
 
 Avoid false information.
 Only incorporate what's valid from the user data.
@@ -299,7 +300,6 @@ At the end return honest and objective feedback about the resume and user data. 
     return resume_text, feedback
 
 def generate_cover_letter_text(user_data, job_data, approach, degree_reason):
-    # (unchanged)
     today_str = datetime.today().strftime("%B %d, %Y")
     si = user_data.get("special_instructions", [])
     instructions_str = "\n".join(f"- {ins}" for ins in si)
@@ -394,7 +394,7 @@ def create_pdf_reportlab(markup_text, pdf_path, doc_title="Document",
         topMargin=topMargin, bottomMargin=bottomMargin
     )
     styles = getSampleStyleSheet()
-    # if it's a cover letter => 10pt, else => 9pt
+    # if it's a cover letter => 11pt, else => 8pt
     base_font_size = 11 if "Cover Letter" in doc_title else 8
 
     docTitleStyle = ParagraphStyle(

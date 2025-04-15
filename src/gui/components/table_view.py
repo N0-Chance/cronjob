@@ -8,6 +8,8 @@ from datetime import datetime
 import os
 import logging
 
+customtkinter.set_appearance_mode("dark")
+
 class DatabaseTableView(customtkinter.CTkFrame):
     def __init__(self, parent, table_name, db_path):
         super().__init__(parent)
@@ -64,23 +66,58 @@ class DatabaseTableView(customtkinter.CTkFrame):
         container = ttk.Frame(self)
         container.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
         
-        # Configure treeview style
+        # Configure container style
         style = ttk.Style()
+        style.configure("Container.TFrame", background="white")
+        container.configure(style="Container.TFrame")
+        
+        # Configure scrollbar style
+        style.configure("Vertical.TScrollbar", 
+            background="white", 
+            troughcolor="white",
+            arrowcolor="black",
+            bordercolor="white"
+        )
+        style.configure("Horizontal.TScrollbar",
+            background="white",
+            troughcolor="white",
+            arrowcolor="black",
+            bordercolor="white"
+        )
+        
+        # Configure treeview style
         style.configure(
             "Treeview",
-            background="#2b2b2b",
-            foreground="white",
-            fieldbackground="#2b2b2b"
+            background="white",
+            foreground="black",
+            fieldbackground="white",
+            selectbackground="#4a4a4a",
+            selectforeground="black",
+            rowheight=25
         )
+        
+        # Configure the headings
         style.configure(
             "Treeview.Heading",
-            background="#1f1f1f",
-            foreground="white"
+            background="white",
+            foreground="black",
+            relief="flat"
+        )
+        
+        # Configure selection colors
+        style.map("Treeview",
+            background=[("selected", "#4a4a4a"), ("!selected", "white")],
+            foreground=[("selected", "black"), ("!selected", "black")]
+        )
+        
+        style.map("Treeview.Heading",
+            background=[("active", "#3c3c3c"), ("!active", "white")],
+            foreground=[("active", "black"), ("!active", "black")]
         )
         
         # Create scrollbars
-        y_scroll = ttk.Scrollbar(container, orient="vertical")
-        x_scroll = ttk.Scrollbar(container, orient="horizontal")
+        y_scroll = ttk.Scrollbar(container, orient="vertical", style="Vertical.TScrollbar")
+        x_scroll = ttk.Scrollbar(container, orient="horizontal", style="Horizontal.TScrollbar")
         
         # Create treeview
         self.tree = ttk.Treeview(

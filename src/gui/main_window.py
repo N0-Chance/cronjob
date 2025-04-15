@@ -11,12 +11,18 @@ from .components.console import ConsoleWidget, ConsoleLogHandler
 from .components.pipeline_control import PipelineControl
 import logging
 
+customtkinter.set_appearance_mode("dark")
+
 class MainWindow(customtkinter.CTk):
     def __init__(self):
         super().__init__()
+
+        # Set the window icon
+        icon_path = os.path.join(os.path.dirname(__file__), "assets", "cronjob.ico")
+        self.iconbitmap(icon_path)
         
         # Configure window
-        self.title("Job Application Pipeline")
+        self.title("cronjob: Resume and Cover Letter Writer")
         self.geometry("1200x800")
         self.minsize(800, 600)
         

@@ -23,7 +23,7 @@ class PipelineControl(customtkinter.CTkFrame):
         self.pipeline_process = None
         self.start_stop_button = customtkinter.CTkButton(
             self,
-            text="Start Pipeline",
+            text="Start cronjob",
             command=self.toggle_pipeline
         )
         self.start_stop_button.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
@@ -68,14 +68,14 @@ class PipelineControl(customtkinter.CTkFrame):
                     job_company TEXT,
                     degree TEXT,
                     degree_reason TEXT,
-                    job_data JSON,
                     resume TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
                     cover_letter_pdf TEXT,
                     feedback TEXT,
                     status TEXT DEFAULT 'scraping',
-                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    job_data JSON
                 );
                 CREATE TABLE IF NOT EXISTS processed (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,7 +84,6 @@ class PipelineControl(customtkinter.CTkFrame):
                     job_company TEXT,
                     degree TEXT,
                     degree_reason TEXT,
-                    job_data JSON,
                     resume TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
@@ -93,7 +92,8 @@ class PipelineControl(customtkinter.CTkFrame):
                     status TEXT,
                     started_at TIMESTAMP,
                     finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    emailed BOOLEAN DEFAULT FALSE
+                    emailed BOOLEAN DEFAULT FALSE,
+                    job_data JSON
                 );
                 CREATE TABLE IF NOT EXISTS unable_to_scrape (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -104,14 +104,14 @@ class PipelineControl(customtkinter.CTkFrame):
                     job_company TEXT,
                     degree TEXT,
                     degree_reason TEXT,
-                    job_data JSON,
                     resume TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
                     cover_letter_pdf TEXT,
                     feedback TEXT,
                     submission_status TEXT,
-                    started_at TIMESTAMP
+                    started_at TIMESTAMP,
+                    job_data JSON
                 );
                 CREATE TABLE IF NOT EXISTS settings (
                     key TEXT PRIMARY KEY,
@@ -164,7 +164,7 @@ class PipelineControl(customtkinter.CTkFrame):
                 self.stderr_thread.start()
                 
                 # Update button state
-                self.start_stop_button.configure(text="Stop Pipeline")
+                self.start_stop_button.configure(text="Stop cronjob")
                 logging.info("Pipeline started successfully")
                 
             else:
@@ -196,7 +196,7 @@ class PipelineControl(customtkinter.CTkFrame):
                 self.stderr_thread.start()
                 
                 # Update button state
-                self.start_stop_button.configure(text="Stop Pipeline")
+                self.start_stop_button.configure(text="Stop cronjob")
                 logging.info("Pipeline started successfully")
             
         except Exception as e:
@@ -231,7 +231,7 @@ class PipelineControl(customtkinter.CTkFrame):
                 # Always reset the state
                 self.pipeline_process = None
                 self.process_id = None
-                self.start_stop_button.configure(text="Start Pipeline")
+                self.start_stop_button.configure(text="Start cronjob")
                 
     def update_console(self):
         """Update the console with any queued output."""

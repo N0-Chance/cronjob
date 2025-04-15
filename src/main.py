@@ -54,14 +54,14 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
-        job_data JSON,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
         cover_letter_pdf TEXT,
         feedback TEXT,
         status TEXT DEFAULT 'scraping',
-        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        job_data JSON
     );
     CREATE TABLE IF NOT EXISTS processed (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +70,6 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
-        job_data JSON,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
@@ -79,7 +78,8 @@ def initialize_database():
         status TEXT,
         started_at TIMESTAMP,
         finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        emailed, BOOLEAN DEFAULT FALSE
+        emailed BOOLEAN DEFAULT FALSE,
+        job_data JSON
     );
     CREATE TABLE IF NOT EXISTS unable_to_scrape (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,15 +90,15 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
-        job_data JSON,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
         cover_letter_pdf TEXT,
         feedback TEXT,
         submission_status TEXT,
-        started_at TIMESTAMP          
-    );               
+        started_at TIMESTAMP,
+        job_data JSON
+    );
     CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT

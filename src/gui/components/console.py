@@ -12,7 +12,7 @@ class ConsoleWidget(customtkinter.CTkTextbox):
         self.configure(
             height=150,  # Fixed height for bottom panel
             wrap="word",
-            font=("Courier", 10),
+            font=("Courier", 12),
             state="disabled"
         )
         
