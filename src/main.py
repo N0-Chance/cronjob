@@ -1,3 +1,4 @@
+import sys
 import os
 import sqlite3
 import logging
@@ -7,6 +8,9 @@ from writer import process_next_writing_job as process_next_writing_jon
 from emailer import check_and_send_emails
 from settings import config
 import asyncio
+
+# Add the src directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -54,11 +58,11 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
+        feedback TEXT,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
         cover_letter_pdf TEXT,
-        feedback TEXT,
         status TEXT DEFAULT 'scraping',
         started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         job_data JSON
@@ -70,11 +74,11 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
+        feedback TEXT,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
         cover_letter_pdf TEXT,
-        feedback TEXT,
         status TEXT,
         started_at TIMESTAMP,
         finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -90,11 +94,11 @@ def initialize_database():
         job_company TEXT,
         degree TEXT,
         degree_reason TEXT,
+        feedback TEXT,
         resume TEXT,
         resume_pdf TEXT,
         cover_letter TEXT,
         cover_letter_pdf TEXT,
-        feedback TEXT,
         submission_status TEXT,
         started_at TIMESTAMP,
         job_data JSON
@@ -128,6 +132,7 @@ async def main():
     
     # Check and initialize database
     initialize_database()
+    logging.info("Cronjob Pipeline Initialized. Ready to start.")
 
     while True:
         # Run input processing
@@ -146,7 +151,8 @@ async def main():
             logging.info("Waiting before next cycle...")
         
         # Wait before next loop to prevent hammering API/database
-        await asyncio.sleep(10)
+        wait_time = 10 if config('GIST_INPUT') else 1
+        await asyncio.sleep(wait_time)
 
 if __name__ == "__main__":
     try:

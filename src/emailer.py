@@ -12,11 +12,16 @@ SMTP_PORT = config("SMTP_PORT")
 SMTP_USERNAME = config("SMTP_USERNAME")
 SMTP_PASSWORD = config("SMTP_PASSWORD")
 
-EMAIL_FROM = config("EMAIL_FROM")  # e.g. "noreply@yourdomain.com"
-EMAIL_TO = config("EMAIL_TO")      # your personal address
+EMAIL_FROM = config("EMAIL_FROM")
+EMAIL_TO = config("EMAIL_TO")
 
 def check_and_send_emails():
     """Check the processed table for any row where emailed=0, then send the email with attachments."""
+    # Check if email is enabled
+    if not bool(int(config("EMAIL_ENABLED"))):
+        # print("Email sending is disabled.")
+        return
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -30,14 +35,14 @@ def check_and_send_emails():
     rows = cursor.fetchall()
 
     if not rows:
-        print("No new processed entries to email.")
+        # print("No new processed entries to email.")
         conn.close()
         return
 
     # For each row, send an email, then update
     for row in rows:
-        (job_id, job_title, job_company, degree, degree_reason, started_at,
-         finished_at, feedback, resume_pdf, cover_letter_pdf) = row
+        (job_id, job_title, job_company, degree, degree_reason, started_at, finished_at,
+         feedback, resume_pdf, cover_letter_pdf) = row
 
         # Build and send the email
         send_email_with_attachments(
@@ -90,7 +95,7 @@ def send_email_with_attachments(job_id, job_title, job_company,
         server.send_message(msg)
 
 
-    print(f"Email sent successfully for job_id={job_id} to {EMAIL_TO}.\n")
+    print(f"Email sent successfully for job_id={job_id} to {EMAIL_TO}.")
 
 if __name__ == "__main__":
     # You can either run this module manually, or set up a schedule (cron) to run it periodically

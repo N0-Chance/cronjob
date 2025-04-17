@@ -13,6 +13,11 @@ load_dotenv()
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
     conn.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+    # Insert default values if they don't exist
+    cursor = conn.cursor()
+    for key, value in DEFAULTS.items():
+        cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (key, value))
+    conn.commit()
     return conn
 
 # === Core getter ===
@@ -29,6 +34,9 @@ def get_setting(key, fallback=None):
     conn.close()
 
     if row:
+        # Convert '0'/'1' to boolean for GIST_INPUT
+        if key == 'GIST_INPUT':
+            return row[0] == '1'
         return row[0]
     return fallback
 
@@ -42,6 +50,10 @@ def set_setting(key, value):
 
 # === Optional: preload useful keys ===
 DEFAULTS = {
+    "GIST_INPUT": False,
+    "EMAIL_ENABLED": False,
+    "FULL_NAME": "Your Name",
+    "FILE_NAME": "yourname",
     "WRITER_MODEL": "gpt-4o",
     "JUDGE_MODEL": "gpt-4o",
     "AGENT_MODEL": "gpt-4o",
@@ -50,10 +62,10 @@ DEFAULTS = {
     "SMTP_SERVER": "smtp.example.com",
     "SMTP_PORT": "465",
     "SMTP_USERNAME": "bot@example.com",
-    "SMTP_PASSWORD": "",
+    "SMTP_PASSWORD": "SecretPassword",
     "DB_PATH": DB_PATH,
-    "FILE_NAME": "yourname",
-    "FULL_NAME": "Your Name",
+    "GITHUB_TOKEN": "your_github_token_here",
+    "GIST_ID": "your_gist_id_here"
 }
 
 # Convenience wrapper to always return *something*

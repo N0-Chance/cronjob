@@ -33,7 +33,7 @@ DB_DIR = os.path.join(ROOT_DIR, "db")
 DB_PATH = os.path.join(DB_DIR, "data.db")
 CONFIG_DIR = os.path.join(ROOT_DIR, "config")
 USER_FILE = os.path.join(CONFIG_DIR, "user.json")
-OUTPUT_DIR = os.path.join(ROOT_DIR, "outputs")
+OUTPUT_DIR = os.path.join(ROOT_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Headers for authentication
@@ -54,7 +54,7 @@ def process_next_writing_job():
     """Main job logic: get next scraping, decide degree decesion, generate text, build PDFs, finalize."""
     user_data = load_user_data()
     if not user_data:
-        print("No user data loaded. Cannot generate resumes/cover letters.")
+        # print("No user data loaded. Cannot generate resumes/cover letters.")
         return False
 
     conn = sqlite3.connect(DB_PATH)
@@ -68,7 +68,7 @@ def process_next_writing_job():
     """)
     row = cursor.fetchone()
     if not row:
-        print("No jobs in 'scraped' status to write resumes/cover letters for.")
+        # print("No jobs in 'scraped' status to write resumes/cover letters for.")
         conn.close()
         return False
 
@@ -140,6 +140,11 @@ def process_next_writing_job():
 
     post_process_pdf(resume_pdf_path, f"{FULL_NAME}", job_title, creation_time_range=(2*24*60, 14*24*60))
     post_process_pdf(cover_letter_pdf_path, f"{FULL_NAME} - Cover Letter for {job_title}", job_title, creation_time_range=(2, 60))
+
+    # Save feedback to a .txt file
+    feedback_file_path = os.path.join(job_output_dir, 'feedback.txt')
+    with open(feedback_file_path, 'w', encoding='utf-8') as feedback_file:
+        feedback_file.write(feedback)
 
     # 4) Update DB with final data
     conn = sqlite3.connect(DB_PATH)
@@ -277,7 +282,7 @@ Include a skills section with a list of skills that are relevant to the job.
 Inclue the dates next to the relevant experience.
 Attept to minimize the resume to one page.
 {extra_reportlab_line}
-At the end return honest and objective feedback about the resume and user data. What could be done by the user to improve their odds of getting the job? What requirements did the user meet and not meet? What kind of data would have helped create a better resume? Is the user a good fit for the job? What are the chances the user gets interviewed for the position? Answer all questions and wrap all feedback in <f></f> tags.
+At the end return honest and objective feedback (even if negative) about the resume and user data. What could be done by the user to improve their odds of getting the job? What requirements did the user meet and not meet? What kind of data would have helped create a better resume? Is the user a good fit for the job? What are the chances the user gets interviewed for the position? Answer all questions and wrap all feedback in <f></f> tags.
 """
     resp = openai.chat.completions.create(
         model=WRITER_MODEL,

@@ -7,3 +7,4 @@ user.json
 *.pdf
 *.db
 *.txt
+!version.txt

@@ -68,11 +68,11 @@ class PipelineControl(customtkinter.CTkFrame):
                     job_company TEXT,
                     degree TEXT,
                     degree_reason TEXT,
+                    feedback TEXT,
                     resume TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
                     cover_letter_pdf TEXT,
-                    feedback TEXT,
                     status TEXT DEFAULT 'scraping',
                     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     job_data JSON
@@ -85,10 +85,10 @@ class PipelineControl(customtkinter.CTkFrame):
                     degree TEXT,
                     degree_reason TEXT,
                     resume TEXT,
+                    feedback TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
                     cover_letter_pdf TEXT,
-                    feedback TEXT,
                     status TEXT,
                     started_at TIMESTAMP,
                     finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -104,18 +104,14 @@ class PipelineControl(customtkinter.CTkFrame):
                     job_company TEXT,
                     degree TEXT,
                     degree_reason TEXT,
+                    feedback TEXT,
                     resume TEXT,
                     resume_pdf TEXT,
                     cover_letter TEXT,
                     cover_letter_pdf TEXT,
-                    feedback TEXT,
                     submission_status TEXT,
                     started_at TIMESTAMP,
                     job_data JSON
-                );
-                CREATE TABLE IF NOT EXISTS settings (
-                    key TEXT PRIMARY KEY,
-                    value TEXT
                 );
             """)
             conn.commit()
@@ -133,9 +129,9 @@ class PipelineControl(customtkinter.CTkFrame):
                     cwd=gui_dir,
                     env={
                         **os.environ,
-                        "PYTHONPATH": gui_dir,
+                        "PYTHONPATH": workspace_dir,  # Set to project root
                         "DB_PATH": db_path,
-                        "PYTHONUNBUFFERED": "1"  # Ensure Python output is unbuffered
+                        "PYTHONUNBUFFERED": "1"
                     },
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -165,7 +161,7 @@ class PipelineControl(customtkinter.CTkFrame):
                 
                 # Update button state
                 self.start_stop_button.configure(text="Stop cronjob")
-                logging.info("Pipeline started successfully")
+                logging.info("cronjob started successfully")
                 
             else:
                 # On Unix-like systems, use xterm
@@ -197,7 +193,7 @@ class PipelineControl(customtkinter.CTkFrame):
                 
                 # Update button state
                 self.start_stop_button.configure(text="Stop cronjob")
-                logging.info("Pipeline started successfully")
+                logging.info("cronjob started successfully")
             
         except Exception as e:
             logging.error(f"Failed to start pipeline: {str(e)}")
@@ -224,9 +220,9 @@ class PipelineControl(customtkinter.CTkFrame):
                     self.pipeline_process.terminate()
                     self.pipeline_process.wait(timeout=5)
                 
-                logging.info("Pipeline stopped successfully")
+                logging.info("cronjob stopped successfully")
             except Exception as e:
-                logging.error(f"Error stopping pipeline: {str(e)}")
+                logging.error(f"Error stopping cronjob: {str(e)}")
             finally:
                 # Always reset the state
                 self.pipeline_process = None

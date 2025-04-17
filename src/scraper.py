@@ -141,7 +141,7 @@ async def process_next_job():
     job = cursor.fetchone()
 
     if not job:
-        print("No jobs in queue to scrape.")
+        # print("No jobs in queue to scrape.")
         conn.close()
         return False
 
