@@ -2,15 +2,16 @@ import sys
 import os
 import sqlite3
 import logging
-from input import process_jobs as ingest_jobs
-from scraper import process_next_job, scrape_form
-from writer import process_next_writing_job as process_next_writing_jon
-from emailer import check_and_send_emails
-from settings import config
-import asyncio
 
 # Add the src directory to the Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from src.input import process_jobs as ingest_jobs
+from src.scraper import process_next_job, scrape_form
+from src.writer import process_next_writing_job as process_next_writing_jon
+from src.emailer import check_and_send_emails
+from src.settings import config
+import asyncio
 
 # Paths
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))

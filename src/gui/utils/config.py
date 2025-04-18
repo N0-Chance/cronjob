@@ -141,9 +141,9 @@ class ConfigManager:
     def get(self, key, default=None):
         """Get a setting value, checking both .env and database."""
         # First check environment variables
-        env_value = os.getenv(key)
-        if env_value is not None:
-            return env_value
+        # env_value = os.getenv(key)
+        # if env_value is not None:
+        #     return env_value
             
         # Then check database
         conn = sqlite3.connect(self.db_path)
@@ -188,9 +188,9 @@ class ConfigManager:
         """Get all settings as a dictionary."""
         settings = {}
         
-        # Get environment variables first
-        for key in os.environ:
-            settings[key] = os.getenv(key)
+        # # Get environment variables first
+        # for key in os.environ:
+        #     settings[key] = os.getenv(key)
             
         # Then get database settings (overwriting env vars if same key)
         conn = sqlite3.connect(self.db_path)

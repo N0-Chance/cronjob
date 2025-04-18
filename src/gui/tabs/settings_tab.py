@@ -44,17 +44,17 @@ class SettingsTab(customtkinter.CTkFrame):
 
         # GIST Input Toggle
         self.gist_input_var = customtkinter.BooleanVar(value=self.config.get("GIST_INPUT", False))
-        self.gist_input_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable GIST Input", variable=self.gist_input_var)
+        self.gist_input_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable GIST Input - Requires GitHub Account (Simple)", variable=self.gist_input_var)
         self.gist_input_toggle.grid(row=1, column=0, sticky="w", padx=10, pady=5)
 
         # Email Toggle
         self.email_toggle_var = customtkinter.BooleanVar(value=self.config.get("EMAIL_ENABLED", False))
-        self.email_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable Email", variable=self.email_toggle_var)
+        self.email_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable Email - Requires SMTP Server (Advanced)", variable=self.email_toggle_var)
         self.email_toggle.grid(row=1, column=1, sticky="w", padx=10, pady=5)
 
         # Motivational Quotes Toggle
-        self.quotes_toggle_var = customtkinter.BooleanVar(value=self.config.get("QUOTES_ENABLED", False))
-        self.quotes_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable Motivational Quotes", variable=self.quotes_toggle_var)
+        self.quotes_toggle_var = customtkinter.BooleanVar(value=self.config.get("QUOTES_ENABLED", True))
+        self.quotes_toggle = customtkinter.CTkCheckBox(self.scrollable_frame, text="Enable Motivational Quotes (Optional)", variable=self.quotes_toggle_var)
         self.quotes_toggle.grid(row=2, column=0, sticky="w", padx=10, pady=5)
 
         # Motivational Quotes Toggle

@@ -14,7 +14,7 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
-from settings import config
+from src.settings import config
 
 # Load environment variables
 openai.api_key = config("OPENAI_API_KEY")

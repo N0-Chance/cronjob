@@ -9,11 +9,19 @@ class ProfileTab(customtkinter.CTkFrame):
         
         # Configure grid layout
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+        
+        # Add top save button
+        self.top_save_button = customtkinter.CTkButton(
+            self,
+            text="Save Profile",
+            command=self.save_profile
+        )
+        self.top_save_button.grid(row=0, column=0, padx=20, pady=20, sticky="ew")
         
         # Create scrollable frame
         self.scrollable_frame = customtkinter.CTkScrollableFrame(self)
-        self.scrollable_frame.grid(row=0, column=0, sticky="nsew")
+        self.scrollable_frame.grid(row=1, column=0, sticky="nsew")
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
         
         # Load user data
@@ -29,7 +37,7 @@ class ProfileTab(customtkinter.CTkFrame):
             text="Add New Section",
             command=self.add_new_section
         )
-        self.add_section_button.grid(row=len(self.sections), column=0, padx=20, pady=20, sticky="ew")
+        self.add_section_button.grid(row=len(self.sections) + 1, column=0, padx=20, pady=20, sticky="ew")
         
         # Save button
         self.save_button = customtkinter.CTkButton(
@@ -37,7 +45,7 @@ class ProfileTab(customtkinter.CTkFrame):
             text="Save Profile",
             command=self.save_profile
         )
-        self.save_button.grid(row=len(self.sections) + 1, column=0, padx=20, pady=20, sticky="ew")
+        self.save_button.grid(row=len(self.sections) + 2, column=0, padx=20, pady=20, sticky="ew")
         
     def load_user_data(self):
         """Load user data from user.json."""
@@ -225,7 +233,7 @@ class ProfileTab(customtkinter.CTkFrame):
         frame.grid_columnconfigure(0, weight=1)
         
         # Skills list
-        skills_list = customtkinter.CTkTextbox(frame, height=100)
+        skills_list = customtkinter.CTkTextbox(frame, height=300)
         skills_list.insert("1.0", "\n".join(self.user_data.get("skills", [])))
         skills_list.grid(row=0, column=0, padx=5, pady=2, sticky="ew")
         setattr(self, "skills_textbox", skills_list)
@@ -292,20 +300,21 @@ class ProfileTab(customtkinter.CTkFrame):
         return frame
         
     def delete_experience_item(self, item_frame):
-        """Delete an experience item."""
-        # Find the item in the list
-        for i, item in enumerate(self.experience_items):
-            if item["frame"] == item_frame:
-                # Remove from the list
-                self.experience_items.pop(i)
-                # Destroy the frame
-                item_frame.destroy()
-                # Reposition remaining items
-                for j in range(i, len(self.experience_items)):
-                    self.experience_items[j]["frame"].grid(row=j)
-                # Move add button down
-                self.sections["experiences"].grid_slaves(row=len(self.experience_items))[0].grid(row=len(self.experience_items) + 1)
-                break
+        """Delete an experience item with confirmation."""
+        if messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this experience?"):
+            # Find the item in the list
+            for i, item in enumerate(self.experience_items):
+                if item["frame"] == item_frame:
+                    # Remove from the list
+                    self.experience_items.pop(i)
+                    # Destroy the frame
+                    item_frame.destroy()
+                    # Reposition remaining items
+                    for j in range(i, len(self.experience_items)):
+                        self.experience_items[j]["frame"].grid(row=j)
+                    # Move add button down
+                    self.sections["experiences"].grid_slaves(row=len(self.experience_items))[0].grid(row=len(self.experience_items) + 1)
+                    break
         
     def add_experience(self):
         """Add a new experience item."""
@@ -354,25 +363,26 @@ class ProfileTab(customtkinter.CTkFrame):
             grid_slaves[0].grid(row=len(self.experience_items) + 1)
         
     def delete_experience(self, item_frame):
-        """Delete an experience item."""
-        # Find the item in the list
-        for i, item in enumerate(self.experience_items):
-            if item["frame"] == item_frame:
-                # Remove from the list
-                self.experience_items.pop(i)
-                # Destroy the frame
-                item_frame.destroy()
-                # Reposition remaining items
-                for j in range(i, len(self.experience_items)):
-                    self.experience_items[j]["frame"].grid(row=j)
-                # Reposition add button
-                grid_slaves = self.sections["experiences"].grid_slaves(row=len(self.experience_items) + 1)
-                if grid_slaves:
-                    grid_slaves[0].grid_forget()
-                grid_slaves = self.sections["experiences"].grid_slaves(row=len(self.experience_items))
-                if grid_slaves:
-                    grid_slaves[0].grid(row=len(self.experience_items) + 1)
-                break
+        """Delete an experience item with confirmation."""
+        if messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this experience?"):
+            # Find the item in the list
+            for i, item in enumerate(self.experience_items):
+                if item["frame"] == item_frame:
+                    # Remove from the list
+                    self.experience_items.pop(i)
+                    # Destroy the frame
+                    item_frame.destroy()
+                    # Reposition remaining items
+                    for j in range(i, len(self.experience_items)):
+                        self.experience_items[j]["frame"].grid(row=j)
+                    # Reposition add button
+                    grid_slaves = self.sections["experiences"].grid_slaves(row=len(self.experience_items) + 1)
+                    if grid_slaves:
+                        grid_slaves[0].grid_forget()
+                    grid_slaves = self.sections["experiences"].grid_slaves(row=len(self.experience_items))
+                    if grid_slaves:
+                        grid_slaves[0].grid(row=len(self.experience_items) + 1)
+                    break
         
     def create_education_section(self, parent, key):
         frame = customtkinter.CTkFrame(parent)
@@ -412,6 +422,7 @@ class ProfileTab(customtkinter.CTkFrame):
             honors_text.grid(row=3, column=1, sticky="ew", padx=5)
             
             self.education_items.append({
+                "frame": item_frame,
                 "degree": degree_entry,
                 "school": school_entry,
                 "dates": dates_entry,
@@ -460,6 +471,7 @@ class ProfileTab(customtkinter.CTkFrame):
             year_entry.grid(row=2, column=1, sticky="ew", padx=5)
             
             self.certification_items.append({
+                "frame": item_frame,
                 "name": name_entry,
                 "organization": org_entry,
                 "year": year_entry
@@ -501,6 +513,7 @@ class ProfileTab(customtkinter.CTkFrame):
             prof_entry.grid(row=1, column=1, sticky="ew", padx=5)
             
             self.language_items.append({
+                "frame": item_frame,
                 "language": lang_entry,
                 "proficiency": prof_entry
             })
@@ -574,25 +587,26 @@ class ProfileTab(customtkinter.CTkFrame):
             grid_slaves[0].grid(row=len(self.education_items) + 1)
         
     def delete_education(self, item_frame):
-        """Delete an education item."""
-        # Find the item in the list
-        for i, item in enumerate(self.education_items):
-            if item["frame"] == item_frame:
-                # Remove from the list
-                self.education_items.pop(i)
-                # Destroy the frame
-                item_frame.destroy()
-                # Reposition remaining items
-                for j in range(i, len(self.education_items)):
-                    self.education_items[j]["frame"].grid(row=j)
-                # Reposition add button
-                grid_slaves = self.sections["education"].grid_slaves(row=len(self.education_items) + 1)
-                if grid_slaves:
-                    grid_slaves[0].grid_forget()
-                grid_slaves = self.sections["education"].grid_slaves(row=len(self.education_items))
-                if grid_slaves:
-                    grid_slaves[0].grid(row=len(self.education_items) + 1)
-                break
+        """Delete an education item with confirmation."""
+        if messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this education item?"):
+            # Find the item in the list
+            for i, item in enumerate(self.education_items):
+                if item["frame"] == item_frame:
+                    # Remove from the list
+                    self.education_items.pop(i)
+                    # Destroy the frame
+                    item_frame.destroy()
+                    # Reposition remaining items
+                    for j in range(i, len(self.education_items)):
+                        self.education_items[j]["frame"].grid(row=j)
+                    # Reposition add button
+                    grid_slaves = self.sections["education"].grid_slaves(row=len(self.education_items) + 1)
+                    if grid_slaves:
+                        grid_slaves[0].grid_forget()
+                    grid_slaves = self.sections["education"].grid_slaves(row=len(self.education_items))
+                    if grid_slaves:
+                        grid_slaves[0].grid(row=len(self.education_items) + 1)
+                    break
         
     def add_certification(self):
         """Add a new certification item."""
@@ -635,25 +649,26 @@ class ProfileTab(customtkinter.CTkFrame):
             grid_slaves[0].grid(row=len(self.certification_items) + 1)
         
     def delete_certification(self, item_frame):
-        """Delete a certification item."""
-        # Find the item in the list
-        for i, item in enumerate(self.certification_items):
-            if item["frame"] == item_frame:
-                # Remove from the list
-                self.certification_items.pop(i)
-                # Destroy the frame
-                item_frame.destroy()
-                # Reposition remaining items
-                for j in range(i, len(self.certification_items)):
-                    self.certification_items[j]["frame"].grid(row=j)
-                # Reposition add button
-                grid_slaves = self.sections["certifications"].grid_slaves(row=len(self.certification_items) + 1)
-                if grid_slaves:
-                    grid_slaves[0].grid_forget()
-                grid_slaves = self.sections["certifications"].grid_slaves(row=len(self.certification_items))
-                if grid_slaves:
-                    grid_slaves[0].grid(row=len(self.certification_items) + 1)
-                break
+        """Delete a certification item with confirmation."""
+        if messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this certification?"):
+            # Find the item in the list
+            for i, item in enumerate(self.certification_items):
+                if item["frame"] == item_frame:
+                    # Remove from the list
+                    self.certification_items.pop(i)
+                    # Destroy the frame
+                    item_frame.destroy()
+                    # Reposition remaining items
+                    for j in range(i, len(self.certification_items)):
+                        self.certification_items[j]["frame"].grid(row=j)
+                    # Reposition add button
+                    grid_slaves = self.sections["certifications"].grid_slaves(row=len(self.certification_items) + 1)
+                    if grid_slaves:
+                        grid_slaves[0].grid_forget()
+                    grid_slaves = self.sections["certifications"].grid_slaves(row=len(self.certification_items))
+                    if grid_slaves:
+                        grid_slaves[0].grid(row=len(self.certification_items) + 1)
+                    break
         
     def add_language(self):
         """Add a new language item."""
@@ -690,25 +705,26 @@ class ProfileTab(customtkinter.CTkFrame):
             grid_slaves[0].grid(row=len(self.language_items) + 1)
         
     def delete_language(self, item_frame):
-        """Delete a language item."""
-        # Find the item in the list
-        for i, item in enumerate(self.language_items):
-            if item["frame"] == item_frame:
-                # Remove from the list
-                self.language_items.pop(i)
-                # Destroy the frame
-                item_frame.destroy()
-                # Reposition remaining items
-                for j in range(i, len(self.language_items)):
-                    self.language_items[j]["frame"].grid(row=j)
-                # Reposition add button
-                grid_slaves = self.sections["languages"].grid_slaves(row=len(self.language_items) + 1)
-                if grid_slaves:
-                    grid_slaves[0].grid_forget()
-                grid_slaves = self.sections["languages"].grid_slaves(row=len(self.language_items))
-                if grid_slaves:
-                    grid_slaves[0].grid(row=len(self.language_items) + 1)
-                break
+        """Delete a language item with confirmation."""
+        if messagebox.askyesno("Confirm Deletion", "Are you sure you want to delete this language?"):
+            # Find the item in the list
+            for i, item in enumerate(self.language_items):
+                if item["frame"] == item_frame:
+                    # Remove from the list
+                    self.language_items.pop(i)
+                    # Destroy the frame
+                    item_frame.destroy()
+                    # Reposition remaining items
+                    for j in range(i, len(self.language_items)):
+                        self.language_items[j]["frame"].grid(row=j)
+                    # Reposition add button
+                    grid_slaves = self.sections["languages"].grid_slaves(row=len(self.language_items) + 1)
+                    if grid_slaves:
+                        grid_slaves[0].grid_forget()
+                    grid_slaves = self.sections["languages"].grid_slaves(row=len(self.language_items))
+                    if grid_slaves:
+                        grid_slaves[0].grid(row=len(self.language_items) + 1)
+                    break
         
     def add_new_section(self):
         """Add a new custom section to the profile."""

@@ -1,8 +1,9 @@
 import requests, subprocess, os, shutil, zipfile
+from src.settings import config
 
-REPO = "N0-Chance/cronjob"  # Change this
+REPO = "N0-Chance/cronjob"
 VERSION_URL = f"https://raw.githubusercontent.com/{REPO}/main/version.txt"
-RELEASE_URL = f"https://github.com/{REPO}/archive/refs/heads/main.zip"
+RELEASE_URL = f"https://github.com/{REPO}/releases/latest/download/cronjob.zip"
 VERSION_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "version.txt")
 BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backup")
 
@@ -40,9 +41,14 @@ def backup_current_version():
 
 def download_latest_release():
     try:
+        version = get_latest_version()
+        if not version:
+            print("Failed to retrieve the latest version.")
+            return False
+        filename = f"cronjob-v{version}.zip"
         r = requests.get(RELEASE_URL, stream=True)
         if r.status_code == 200:
-            with open("latest.zip", "wb") as f:
+            with open(filename, "wb") as f:
                 for chunk in r.iter_content(chunk_size=128):
                     f.write(chunk)
             return True
@@ -53,9 +59,14 @@ def download_latest_release():
 
 def extract_and_replace():
     try:
-        with zipfile.ZipFile("latest.zip", "r") as zip_ref:
+        version = get_latest_version()
+        if not version:
+            print("Failed to retrieve the latest version.")
+            return False
+        filename = f"cronjob-v{version}.zip"
+        with zipfile.ZipFile(filename, "r") as zip_ref:
             zip_ref.extractall(os.path.dirname(os.path.dirname(__file__)))
-        os.remove("latest.zip")
+        os.remove(filename)
         return True
     except Exception as e:
         print(f"Extraction failed: {e}")

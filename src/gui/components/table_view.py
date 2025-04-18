@@ -50,6 +50,14 @@ class DatabaseTableView(customtkinter.CTkFrame):
         )
         export_btn.pack(side="left", padx=5)
         
+        # Add label for instructions
+        instruction_label = customtkinter.CTkLabel(
+            toolbar,
+            text="Double click on a row to open",
+            width=200
+        )
+        instruction_label.pack(side="left", padx=5)
+        
         # Search entry
         self.search_var = tk.StringVar()
         self.search_var.trace("w", lambda *args: self.filter_data())

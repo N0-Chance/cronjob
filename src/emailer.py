@@ -3,7 +3,7 @@ import sqlite3
 import smtplib
 import ssl
 from email.message import EmailMessage
-from settings import config
+from src.settings import config
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db", "data.db")
 

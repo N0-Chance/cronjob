@@ -3,6 +3,7 @@ import json
 import sqlite3
 from dotenv import load_dotenv
 import os
+from src.settings import config
 
 # Load environment variables
 load_dotenv()

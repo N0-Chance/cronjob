@@ -15,6 +15,7 @@ import logging
 from src.updater import is_update_available, perform_update
 from tkinter import messagebox
 from src.gui.utils.config import QUOTES, ConfigManager
+from .setup_wizard import SetupWizard
 
 customtkinter.set_appearance_mode("dark")
 
@@ -24,6 +25,10 @@ class MainWindow(customtkinter.CTk):
 
         # Initialize config manager
         self.config = ConfigManager()
+
+        # Check if setup is completed
+        if not self.config.get("SETUP_COMPLETED", False):
+            self.run_setup_wizard()
 
         # Set the window icon
         icon_path = os.path.join(os.path.dirname(__file__), "assets", "cronjob.ico")
@@ -36,7 +41,7 @@ class MainWindow(customtkinter.CTk):
         
         # Add motivational quotes bar at the top
         self.quotes_label = customtkinter.CTkLabel(self, text="", font=("Arial", 14))
-        self.quotes_label.grid(row=0, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+        self.quotes_label.grid(row=0, column=0, columnspan=3, sticky="ew", padx=(200, 5), pady=5)
 
         # Configure grid layout
         self.grid_rowconfigure(1, weight=1)  # Main content area
@@ -223,6 +228,11 @@ class MainWindow(customtkinter.CTk):
     def change_quote(self):
         self.display_random_quote()
         self.schedule_quote_change()
+
+    def run_setup_wizard(self):
+        """Run the setup wizard for first-time setup."""
+        wizard = SetupWizard(self)
+        self.wait_window(wizard)
 
 if __name__ == "__main__":
     app = MainWindow()
