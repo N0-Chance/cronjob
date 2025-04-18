@@ -3,6 +3,11 @@ from tkinter import messagebox
 from .utils.config import ConfigManager
 from ..main import initialize_database
 
+import subprocess
+import os
+import sys
+import shutil
+
 class SetupWizard(customtkinter.CTkToplevel):
     def __init__(self, main_window):
         super().__init__(main_window)
@@ -51,7 +56,6 @@ class SetupWizard(customtkinter.CTkToplevel):
         label.pack(pady=10)
         info_label = customtkinter.CTkLabel(self.step_frame, text="Please complete your profile information in the Profile tab after setup.", wraplength=500)
         info_label.pack(pady=10)
-        # Add more fields for profile information as needed
         button_frame = customtkinter.CTkFrame(self.step_frame)
         button_frame.pack(pady=20)
         finish_button = customtkinter.CTkButton(button_frame, text="Finish", command=self.finish_setup)
@@ -78,5 +82,19 @@ class SetupWizard(customtkinter.CTkToplevel):
     def finish_setup(self):
         # Save profile information here
         self.config.set("SETUP_COMPLETED", True)
+
+        # Check for Playwright browser installation
+        try:
+            browser_path = os.path.expanduser("~/.cache/ms-playwright/chromium")
+            if not os.path.exists(browser_path):
+                messagebox.showinfo("Installing Browser", "Installing Chromium browser for scraping... this may take a moment.\n\nClick OK to continue. A popup will appear when setup is complete.")
+                subprocess.run(["playwright", "install", "chromium"], check=True)
+        except Exception as e:
+            messagebox.showwarning(
+                "Playwright Setup",
+                f"Setup completed, but the browser could not be preinstalled.\n"
+                f"It will be downloaded automatically when needed.\n\nDetails: {str(e)}"
+            )
+
         messagebox.showinfo("Setup Complete", "Setup is complete. Thanks for using cronjob!")
-        self.destroy() 
+        self.destroy()
