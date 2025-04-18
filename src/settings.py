@@ -55,7 +55,7 @@ DEFAULTS = {
     "FULL_NAME": "Your Name",
     "FILE_NAME": "yourname",
     "WRITER_MODEL": "gpt-4.1",
-    "JUDGE_MODEL": "gpt-4.1 mini",
+    "JUDGE_MODEL": "gpt-4.1-mini",
     "AGENT_MODEL": "gpt-4o",
     "EMAIL_FROM": "bot@example.com",
     "EMAIL_TO": "your@email.com",
