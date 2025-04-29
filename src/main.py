@@ -33,6 +33,21 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S"
 )
 
+# Create a filter to suppress specific messages
+class MessageFilter(logging.Filter):
+    def filter(self, record):
+        # Suppress specific messages
+        if "No valid jobs scraped" in record.getMessage():
+            return False
+        if "Waiting before next cycle" in record.getMessage():
+            return False
+        if "GIST_INPUT setting" in record.getMessage():
+            return False
+        return True
+
+# Add the filter to the root logger
+logging.getLogger().addFilter(MessageFilter())
+
 def initialize_database():
     """Creates database and tables if they don't exist."""
     print(f"Checking database path: {DB_PATH}")  # Debugging output

@@ -31,7 +31,24 @@ class MainWindow(customtkinter.CTk):
             self.run_setup_wizard()
 
         # Set the window icon
-        icon_path = os.path.join(os.path.dirname(__file__), "assets", "cronjob.ico")
+        def resource_path(relative_path):
+            """Get absolute path to resource, compatible with PyInstaller and dev"""
+            if hasattr(sys, '_MEIPASS'):
+                # We're inside a PyInstaller onefile bundle
+                return os.path.join(sys._MEIPASS, relative_path)
+            
+            # Try relative to script directory (local dev, Cursor, VS Code, etc.)
+            base_path = os.path.dirname(os.path.abspath(__file__))
+
+            # Try dev path: /src/gui/assets/cronjob.ico
+            candidate = os.path.join(base_path, "assets", os.path.basename(relative_path))
+            if os.path.exists(candidate):
+                return candidate
+
+            # Fallback to literal root path (if run from project root)
+            return os.path.abspath(relative_path)
+
+        icon_path = resource_path("cronjob.ico")
         self.iconbitmap(icon_path)
         
         # Configure window
@@ -41,7 +58,7 @@ class MainWindow(customtkinter.CTk):
         
         # Add motivational quotes bar at the top
         self.quotes_label = customtkinter.CTkLabel(self, text="", font=("Arial", 14))
-        self.quotes_label.grid(row=0, column=0, columnspan=3, sticky="ew", padx=(200, 5), pady=5)
+        self.quotes_label.grid(row=0, column=0, columnspan=3, sticky="ew", padx=(170, 5), pady=5)
 
         # Configure grid layout
         self.grid_rowconfigure(1, weight=1)  # Main content area

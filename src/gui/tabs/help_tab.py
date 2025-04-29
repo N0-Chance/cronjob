@@ -11,6 +11,9 @@ class HelpTab(customtkinter.CTkFrame):
         self.html_frame = HtmlFrame(self, messages_enabled=False)
         self.html_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
+        # Unbind the scroll wheel event
+        self.html_frame.unbind_all("<MouseWheel>")
+
         # Load the README.md content
         self.load_readme()
 
