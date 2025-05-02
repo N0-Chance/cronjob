@@ -1,0 +1,89 @@
+{
+    "personal_info": {
+        "name": "Full Name",
+        "address": "123 Your Street, Your City, ST 00000",
+        "phone": "555-555-5555",
+        "email": "you@example.com",
+        "linkedin": "/in/your-linkedin-profile",
+        "website": "https://yourwebsite.com",
+        "github": "https://github.com/yourhandle"
+    },
+    "eligibility": {
+        "work_eligibility": "Yes or No",
+        "visa_sponsorship_needed": "Yes or No",
+        "security_clearance": "None / Secret / Top Secret / etc.",
+        "willing_to_relocate": "Yes or No",
+        "willing_to_travel": "Yes or No"
+    },
+    "demographics": {
+        "gender": "Your Gender (optional)",
+        "race_ethnicity": "Your Ethnicity (optional)",
+        "veteran_status": "Yes or No",
+        "disability_status": "Yes or No",
+        "preferred_pronouns": "e.g., He/Him, She/Her, They/Them"
+    },
+    "skills": [
+        "List each skill as a short phrase, like you'd expect on a resume, one data point per line.",
+        "Include soft and hard skills, abilities, and tools you are proficient in.",
+        "The AI will choose the most relevant skills for the job you're applying to.",
+        "More is better - don't worry about trimming; GPT will filter for fit.",
+        "Examples of hard skills: Contract Drafting, SQL, Shopify, Regulatory Compliance, JavaScript",
+        "Examples of soft skills: Conflict Resolution, Stakeholder Communication, Time Management",
+        "You can include tool-specific knowledge (e.g., Salesforce, Tableau, Asana).",
+        "You may group skills by theme (e.g., Legal / Technical / Project Mgmt) if desired.",
+        "Avoid vague filler (e.g., Hard Worker, Team Player) - be specific about what you do well.",
+        "If in doubt, include it. GPT will ignore what isn't relevant.",
+        "Seriously, just include everything you can think of.",
+        "You're paying for the tokens, might as well provide as much data as possible.",
+        "This is why we're using an AI after all, right?"
+    ],
+    "experiences": [
+        {
+            "company": "Example Company Inc.",
+            "role": "Your Job Title",
+            "dates": "Month Year - Month Year",
+            "bullets": [
+                "Describe what you did in this role.",
+                "Use active verbs and measurable outcomes.",
+                "One line per notable data point.",
+                "Example: Negotiated vendor contracts reducing costs by 15%.",
+                "Example: Led cross-functional project team to deploy system upgrade."
+            ]
+        },
+        {
+            "company": "Another Company LLC",
+            "role": "Previous Title",
+            "dates": "Month Year - Month Year",
+            "bullets": [
+                "Avoid repeating the same data points in multiple roles.",
+                "PROVIDE AS MUCH DATA AS POSSIBLE, THE WRITER AI WILL SELECT THE MOST RELEVANT DATA.",
+                "The writer will use and select from the provided data to create a resume that is tailored to the job you are applying for.",
+                "Honestly, it just works better if you provide a lot of data. The AI will match your data to the job description and create a better resume."
+            ]
+        }
+    ],
+    "education": [
+        {
+            "degree": "Bachelor of Science / Bachelor of Arts / etc.",
+            "school": "Your University",
+            "dates": "Month Year - Month Year",
+            "honors": [
+                "Any notable accomplishments or academic recognition",
+                "Honors or relevant coursework",
+                "Capstone or research highlights"
+            ]
+        }
+    ],
+    "certifications": [],
+    "languages": [
+        {
+            "language": "English",
+            "proficiency": "Native"
+        }
+    ],
+    "special_instructions": [
+        "Never fabricate data or experience not present in user file.",
+        "Do not include demographic or pronoun info unless requested by employer.",
+        "Omit irrelevant jobs or degrees unless directly applicable."
+    ]
+}

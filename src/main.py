@@ -1,0 +1,209 @@
+import sys
+import os
+import sqlite3
+import logging
+
+# Add the src directory to the Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+
+from src.input import process_jobs as ingest_jobs
+from src.scraper import process_next_job, scrape_form
+from src.writer import process_next_writing_job as process_next_writing_jon
+from src.emailer import check_and_send_emails
+from src.settings import config
+import asyncio
+from pathlib import Path
+import win32com.client
+
+# Paths
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+DB_DIR = os.path.join(ROOT_DIR, "db")
+DB_PATH = os.path.join(DB_DIR, "data.db")
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+
+# Ensure necessary directories exist
+os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(DB_DIR, exist_ok=True)
+
+# Configure logging
+LOG_FILE = os.path.join(LOG_DIR, "cronjob.log")
+logging.basicConfig(
+    filename=LOG_FILE,
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+def initialize_database():
+    """Creates database and tables if they don't exist."""
+    print(f"Checking database path: {DB_PATH}")  # Debugging output
+
+    # Ensure the db file exists
+    if not os.path.exists(DB_PATH):
+        print("Database file not found, creating new one...")
+
+    # Connect to SQLite database
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.executescript("""
+    CREATE TABLE IF NOT EXISTS queue (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE NOT NULL,
+        status TEXT DEFAULT 'pending',
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS processing (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE NOT NULL,
+        job_title TEXT,
+        job_company TEXT,
+        degree TEXT,
+        degree_reason TEXT,
+        feedback TEXT,
+        resume TEXT,
+        resume_pdf TEXT,
+        cover_letter TEXT,
+        cover_letter_pdf TEXT,
+        status TEXT DEFAULT 'scraping',
+        started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        job_data JSON
+    );
+    CREATE TABLE IF NOT EXISTS processed (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE NOT NULL,
+        job_title TEXT,
+        job_company TEXT,
+        degree TEXT,
+        degree_reason TEXT,
+        feedback TEXT,
+        resume TEXT,
+        resume_pdf TEXT,
+        cover_letter TEXT,
+        cover_letter_pdf TEXT,
+        status TEXT,
+        started_at TIMESTAMP,
+        finished_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        emailed BOOLEAN DEFAULT FALSE,
+        job_data JSON
+    );
+    CREATE TABLE IF NOT EXISTS unable_to_scrape (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        url TEXT UNIQUE NOT NULL,
+        error TEXT,
+        added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        job_title TEXT,
+        job_company TEXT,
+        degree TEXT,
+        degree_reason TEXT,
+        feedback TEXT,
+        resume TEXT,
+        resume_pdf TEXT,
+        cover_letter TEXT,
+        cover_letter_pdf TEXT,
+        submission_status TEXT,
+        started_at TIMESTAMP,
+        job_data JSON
+    );
+    CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    );
+
+    """)
+
+    conn.commit()
+    conn.close()
+    print("Database initialized successfully.")
+
+# Job Processing Loop
+async def process_queue():
+    """Process a job using scraper.py's logic and move only valid ones forward."""
+    success = await process_next_job()  # This now handles scraping, failure cases, etc.
+
+    if success:
+        logging.info("Successfully scraped a job and moved it forward.")
+        return True
+    else:
+        logging.info("No valid jobs scraped. Waiting for new jobs...")
+        return False
+        
+def create_desktop_shortcut_if_needed():
+    from win32com.client import Dispatch
+    from pathlib import Path
+
+    desktop = Path(os.path.join(os.environ["USERPROFILE"], "Desktop"))
+    shortcut_path = desktop / "cronjob resume writer.lnk"
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("SELECT value FROM settings WHERE key = ?", ("gui_shortcut_created",))
+        result = cursor.fetchone()
+        if result and result[0] == "1":
+            return
+
+        # Build shortcut to pythonw.exe directly
+        target = str(Path(ROOT_DIR) / "venv" / "Scripts" / "pythonw.exe")
+        arguments = str(Path(ROOT_DIR) / "src" / "gui" / "start_gui.py")
+        working_dir = str(Path(ROOT_DIR))
+        icon_path = str(Path(ROOT_DIR) / "src" / "gui" / "assets" / "cronjob.ico")
+
+        shell = Dispatch("WScript.Shell")
+        shortcut = shell.CreateShortCut(str(shortcut_path))
+        shortcut.Targetpath = target
+        shortcut.Arguments = arguments
+        shortcut.WorkingDirectory = working_dir
+        shortcut.IconLocation = icon_path
+        shortcut.WindowStyle = 7  # Minimized
+
+        try:
+            shortcut.save()
+            logging.info(f"GUI shortcut created at {shortcut_path}")
+            cursor.execute("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", ("gui_shortcut_created", "1"))
+            conn.commit()
+        except Exception as e:
+            logging.warning(f"Could not create shortcut at {shortcut_path}: {e}")
+
+    except Exception as e:
+        logging.error(f"Failed during shortcut creation: {e}")
+    finally:
+        conn.close()
+
+# Main Execution Loop
+async def main():
+    logging.info("Cronjob Pipeline Started.")
+    
+    # Check and initialize database
+    initialize_database()
+    create_desktop_shortcut_if_needed()
+    logging.info("Cronjob Pipeline Initialized. Ready to start.")
+
+    while True:
+        # Run input processing
+        ingest_jobs()
+
+        # Process queued jobs
+        job_processed = await process_queue()  # Use await now
+
+        # Run the writer
+        process_next_writing_jon()
+
+        # Send emails for completed jobs
+        check_and_send_emails()
+
+        if not job_processed:
+            logging.info("Waiting before next cycle...")
+        
+        # Wait before next loop to prevent hammering API/database
+        wait_time = 10 if config('GIST_INPUT') else 1
+        await asyncio.sleep(wait_time)
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logging.info("Cronjob pipeline stopped by keyboard interrupt.")
+        print("\nCronjob pipeline stopped by keyboard interrupt.\n")
